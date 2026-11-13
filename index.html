@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Programação Quinzenal PE Tianguá III</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: cabeçalho + faixa de resumo, depois a grade de programação rolável com colunas de atividade fixas à esquerda */
+:root{
+  --bg:#f3f5f4; --surface:#ffffff; --ink:#1d2a26; --muted:#5f6f6a; --line:#d5dedb;
+  --accent:#2f6b5a; --accent-soft:#c3d2cd; --weekend:#e9ecea; --holiday:#f6dccd; --holiday-ink:#9a4a22;
+  --ok:#2e7d4f; --warn:#b26b00; --bad:#b3261e; --bad-soft:#fbe3e1; --input:#1f4fbf;
+  --display:"Barlow Semi Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#141a18; --surface:#1c2421; --ink:#e3ebe8; --muted:#97a7a1; --line:#2f3b37;
+  --accent:#7cc2ab; --accent-soft:#2b3d37; --weekend:#222b28; --holiday:#3a2a20; --holiday-ink:#f0b38f;
+  --ok:#6fcf97; --warn:#f2b54b; --bad:#ff8a80; --bad-soft:#3d2321; --input:#8fb3ff; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#141a18; --surface:#1c2421; --ink:#e3ebe8; --muted:#97a7a1; --line:#2f3b37;
+  --accent:#7cc2ab; --accent-soft:#2b3d37; --weekend:#222b28; --holiday:#3a2a20; --holiday-ink:#f0b38f;
+  --ok:#6fcf97; --warn:#f2b54b; --bad:#ff8a80; --bad-soft:#3d2321; --input:#8fb3ff; color-scheme:dark;}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--body);font-variant-numeric:tabular-nums}
+.wrap{padding:20px clamp(16px,2.5vw,32px) 40px;display:grid;gap:16px}
+header{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:flex-end;justify-content:space-between}
+h1{font:700 28px/1.1 var(--display);margin:0;letter-spacing:.2px;text-wrap:balance}
+.sub{color:var(--muted);margin-top:4px;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center}
+.sub b{color:var(--ink);font-weight:600}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:99px;font-size:12px;border:1px solid var(--line);background:var(--surface);color:var(--muted)}
+.pill i{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.pill.ok i{background:var(--ok)} .pill.busy i{background:var(--warn)} .pill.bad i{background:var(--bad)}
+.banner{background:var(--bad-soft);color:var(--ink);border:1px solid var(--line);border-left:4px solid var(--bad);padding:10px 14px;border-radius:6px;display:none}
+.summary{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr)) minmax(320px,2.2fr);gap:12px}
+.tile,.chart{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+.tile .k{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.tile .v{font:700 30px/1.1 var(--display);margin-top:4px}
+.tile .h{font-size:12px;color:var(--muted)}
+.tile.alert{border-left:4px solid var(--bad)} .tile.alert .v{color:var(--bad)}
+.tile.good{border-left:4px solid var(--ok)}
+.chart .k{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;display:flex;justify-content:space-between}
+.chart svg{width:100%;height:96px;display:block;margin-top:6px}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.toolbar .grow{flex:1}
+input.f,select.f{font:inherit;padding:7px 10px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);min-width:0}
+label.lb{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+button{font:inherit;cursor:pointer;border-radius:6px;padding:7px 12px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--surface);font-weight:600}
+button:hover{filter:brightness(.97)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{border:0;border-radius:0;border-right:1px solid var(--line)} .seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--accent-soft);font-weight:600}
+.gridbox{background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:auto;max-height:calc(100vh - 120px)}
+table{border-collapse:separate;border-spacing:0;font-size:12.5px;min-width:100%}
+th,td{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:0;white-space:nowrap}
+thead th{position:sticky;background:var(--accent-soft);font:600 12px/1.2 var(--display);letter-spacing:.3px;text-transform:uppercase;padding:6px 6px;text-align:center;z-index:2}
+thead tr.band th{top:0;height:28px;font-size:13px}
+thead tr.cols th{top:28px;height:44px;white-space:normal}
+th.day{min-width:72px;cursor:pointer}
+th.day small{display:block;font:500 11px var(--body);text-transform:none;color:var(--muted)}
+th.day.hol{background:var(--holiday);color:var(--holiday-ink)}
+th.day.wk{background:color-mix(in srgb,var(--accent-soft) 60%,var(--weekend))}
+.stick{position:sticky;z-index:1;background:var(--surface)}
+thead .stick{z-index:3;background:var(--accent-soft)}
+.c-item{left:0;width:42px;min-width:42px}
+.c-desc{left:42px;min-width:240px;max-width:240px}
+.c-local{left:282px;min-width:290px;box-shadow:2px 0 0 var(--line)}
+td input{font:inherit;width:100%;border:0;background:transparent;padding:6px 6px;color:var(--input);min-width:0}
+td input:focus{background:color-mix(in srgb,var(--accent-soft) 45%,transparent);outline:none;box-shadow:inset 0 0 0 2px var(--accent)}
+td input.num{text-align:right}
+td.calc{padding:6px 6px;text-align:right;color:var(--ink)}
+td.tot{background:color-mix(in srgb,var(--accent-soft) 35%,var(--surface));font-weight:600}
+td.wk{background:var(--weekend)} td.hol{background:var(--holiday)}
+td.hasv input{font-weight:600}
+td.item{text-align:center;color:var(--muted);padding:6px 2px;position:sticky}
+tr:hover td{background-image:linear-gradient(color-mix(in srgb,var(--accent) 6%,transparent),color-mix(in srgb,var(--accent) 6%,transparent))}
+td.over{background:var(--bad-soft);color:var(--bad)}
+.prog{display:flex;align-items:center;gap:6px;padding:0 8px;min-width:110px}
+.prog .bar{flex:1;height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.prog .bar i{display:block;height:100%;background:var(--accent)}
+.prog.done .bar i{background:var(--ok)}
+.prog span{width:40px;text-align:right;font-size:12px}
+td.act{padding:0 4px}
+td.act button{padding:3px 7px;font-size:12px;border-color:transparent;background:transparent;color:var(--muted)}
+td.act button.confirm{color:var(--surface);background:var(--bad);border-color:var(--bad)}
+.cad{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px;display:none;gap:14px;grid-template-columns:repeat(3,minmax(220px,1fr))}
+.cad.open{display:grid}
+.cad h2{font:700 17px/1.2 var(--display);margin:0 0 8px;display:flex;justify-content:space-between;align-items:baseline}
+.cad h2 small{font:400 12px var(--body);color:var(--muted)}
+.cad ul{list-style:none;margin:0;padding:0;max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:6px}
+.cad li{display:flex;gap:6px;align-items:center;border-bottom:1px solid var(--line);padding:2px 4px}
+.cad li:last-child{border-bottom:0}
+.cad li input{font:inherit;border:0;background:transparent;color:var(--input);padding:5px 4px;flex:1;min-width:0}
+.cad li input.un{flex:0 0 58px;text-align:center;border-left:1px solid var(--line)}
+.cad li button{padding:2px 7px;font-size:12px;border-color:transparent;background:transparent;color:var(--muted)}
+.cad li button.confirm{background:var(--bad);color:var(--surface)}
+.cad form{display:flex;gap:6px;margin-top:8px}
+.cad form input{flex:1}
+.cad form input.un{flex:0 0 70px}
+.basebox{grid-column:1/-1;display:grid;gap:8px}
+.basebox .seg{flex-wrap:wrap}
+.basebox .gridbox{max-height:420px}
+#tbase th{position:sticky;top:0;background:var(--accent-soft);font:600 12px/1.2 var(--display);text-transform:uppercase;padding:7px 8px;z-index:1}
+#tbase td.l{padding:6px 8px;font-weight:500}
+#tbase td input{width:110px}
+#tbase tfoot td{font-weight:700;padding:7px 8px;background:var(--accent-soft);text-align:right}
+.st{width:100%;min-width:34px;height:30px;border:0;border-radius:0;padding:0;font-weight:700;font-size:12px;cursor:pointer}
+.st0{background:transparent;color:var(--muted)} .st1{background:color-mix(in srgb,var(--warn) 30%,var(--surface));color:var(--ink)} .st2{background:color-mix(in srgb,var(--ok) 38%,var(--surface));color:var(--ink)}
+.st.prg{box-shadow:inset 0 0 0 2px var(--input)}
+.gtag{font-size:10.5px;color:var(--muted);border:1px solid var(--line);border-radius:99px;padding:1px 7px;white-space:nowrap}
+.cad .note{grid-column:1/-1;font-size:12px;color:var(--muted)}
+td select{font:inherit;width:100%;border:0;background:transparent;padding:6px 4px;color:var(--input);min-width:0;cursor:pointer}
+td select:focus{outline:none;box-shadow:inset 0 0 0 2px var(--accent)}
+td select.off{color:var(--warn)}
+@media (max-width:900px){.cad{grid-template-columns:1fr}}
+.empty{padding:30px;text-align:center;color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--muted)}
+.legend span::before{content:"";display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:5px;vertical-align:-2px;background:var(--sw);border:1px solid var(--line)}
+.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:6px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+@media (max-width:1100px){.summary{grid-template-columns:repeat(2,1fr)} .chart{grid-column:1/-1}}
+@media (max-width:520px){.summary{grid-template-columns:1fr} .c-local{position:static;box-shadow:none}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Programação Quinzenal · Obras Civis</h1>
+      <div class="sub">
+        <span><b>Complexo Eólico Ibiapaba</b> · PE Tianguá III</span>
+        <span id="periodo">Período: –</span>
+        <span class="pill" id="status"><i></i><span>Conectando…</span></span>
+      </div>
+    </div>
+    <div class="toolbar">
+      <label class="lb" for="inicio">Início</label>
+      <input class="f" type="date" id="inicio">
+      <label class="lb" for="ndias">Dias</label>
+      <select class="f" id="ndias"><option value="7">7</option><option value="14" selected>14</option><option value="21">21</option></select>
+    </div>
+  </header>
+
+  <div class="banner" id="banner"></div>
+
+  <section class="summary" aria-label="Resumo">
+    <div class="tile"><div class="k">Atividades</div><div class="v" id="t-ativ">–</div><div class="h" id="t-ativ-h">&nbsp;</div></div>
+    <div class="tile"><div class="k">Programadas no período</div><div class="v" id="t-prog">–</div><div class="h" id="t-prog-h">&nbsp;</div></div>
+    <div class="tile good"><div class="k">Concluem no período</div><div class="v" id="t-fim">–</div><div class="h">saldo zerado ao fim</div></div>
+    <div class="tile" id="t-over-box"><div class="k">Acima do saldo</div><div class="v" id="t-over">–</div><div class="h">programado &gt; saldo a executar</div></div>
+    <div class="chart"><div class="k"><span>Frentes programadas por dia</span><span id="c-max"></span></div><svg id="chart" role="img" aria-label="Número de atividades programadas por dia"></svg></div>
+  </section>
+
+  <div class="toolbar">
+    <input class="f" id="busca" type="search" placeholder="Buscar atividade ou local…" aria-label="Buscar">
+    <select class="f" id="fresp" aria-label="Filtrar por responsável"><option value="">Todos os responsáveis</option></select>
+    <div class="seg" role="group" aria-label="Semanas visíveis" id="segsem"></div>
+    <div class="grow"></div>
+    <button id="bcad" aria-expanded="false" aria-controls="cad">Base de dados (acessos × atividades)</button>
+    <button id="copiar" title="Copia a tabela para colar no Excel">Copiar para Excel</button>
+    <button class="primary" id="nova">+ Nova atividade</button>
+  </div>
+
+  <section class="cad" id="cad" aria-label="Base de dados">
+    <div class="basebox">
+      <h2>Base de dados <small id="basehint"></small></h2>
+      <div class="toolbar"><div class="seg" role="group" aria-label="Grupo" id="seggrp"></div></div>
+      <div class="seg" role="group" aria-label="Atividade" id="segat"></div>
+      <div class="gridbox"><table id="tbase"></table></div>
+    </div>
+    <div><h2>Atividades <small id="n-at"></small></h2><ul id="l-at"></ul>
+      <form id="f-at"><input class="f" id="in-at" placeholder="Nova atividade" aria-label="Nova atividade"><input class="f un" id="in-un" list="dl-un" placeholder="Unid." aria-label="Unidade"><button class="primary">Adicionar</button></form></div>
+    <div><h2>Locais <small id="n-lo"></small></h2><ul id="l-lo"></ul>
+      <form id="f-lo"><input class="f" id="in-lo" placeholder="Novo local (ex.: ROS 06-03)" aria-label="Novo local"><button class="primary">Adicionar</button></form></div>
+    <div><h2>Responsáveis <small id="n-re"></small></h2><ul id="l-re"></ul>
+      <form id="f-re"><input class="f" id="in-re" placeholder="Novo responsável" aria-label="Novo responsável"><button class="primary">Adicionar</button></form></div>
+    <div class="note">Na programação, Descrição, Local e Responsável são escolhidos destas listas. Ao escolher a atividade, a unidade padrão é preenchida sozinha. Ao escolher atividade e local, a quantidade de projeto e o executado vêm da tabela acima. Editar esses números na programação também atualiza a tabela. Renomear um item atualiza as linhas que o usam.</div>
+  </section>
+
+  <div class="legend">
+    <span style="--sw:transparent">Texto azul: editável (clique e digite)</span>
+    <span style="--sw:var(--weekend)">Fim de semana</span>
+    <span style="--sw:var(--holiday)">Feriado (clique no dia para marcar/desmarcar)</span>
+    <span style="--sw:var(--bad-soft)">Programado acima do saldo</span>
+  </div>
+
+  <div class="gridbox" id="gridbox"><table id="grid"></table></div>
+</div>
+<div class="toast" id="toast" role="status"></div>
+<datalist id="dl-resp"></datalist><datalist id="dl-un"><option value="M3"><option value="M"><option value="M2"><option value="UN."><option value="KG"><option value="VB"></datalist>
+
+<script>
+const $ = s => document.querySelector(s);
+const fmt = new Intl.NumberFormat('pt-BR',{maximumFractionDigits:2});
+const WD = ['dom','seg','ter','qua','qui','sex','sáb'];
+const FIELDS = ['desc','local','resp','un'];
+let db = null, canWrite = true;
+let rows = [];
+let cfg = {inicio:'2026-11-14', dias:14, feriados:['2026-11-20']};
+let filt = {q:'', resp:'', sem:'all'};
+let cad = {atividades:[], locais:[], responsaveis:[], base:{}};
+let baseAt = '';
+
+/* ---------- utilidades ---------- */
+function parseNum(s){
+  s = String(s ?? '').trim().replace(/\s/g,'');
+  if(!s) return null;
+  if(s.includes(',')) s = s.replace(/\./g,'').replace(',', '.');
+  else if(/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g,'');
+  const n = Number(s); return isFinite(n) ? n : NaN;
+}
+const show = n => (n===null||n===undefined||n===0) ? '' : fmt.format(n);
+function addDays(iso,k){const d=new Date(iso+'T12:00:00');d.setDate(d.getDate()+k);return d.toISOString().slice(0,10)}
+function days(){return Array.from({length:cfg.dias},(_,i)=>addDays(cfg.inicio,i))}
+function dmy(iso){const [y,m,d]=iso.split('-');return d+'/'+m}
+function wday(iso){return new Date(iso+'T12:00:00').getDay()}
+function esc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function toast(t){const el=$('#toast');el.textContent=t;el.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('show'),2200)}
+function status(kind,text){const p=$('#status');p.className='pill '+kind;p.lastElementChild.textContent=text}
+
+const bkey = r => r.local && r.desc ? r.local+'|'+r.desc : null;
+function qe(r){ const k = bkey(r), b = k && cad.base && cad.base[k];
+  if(k && grupoDe(r.desc)==='FUNDAÇÕES') return {qtd:1, exe: typeof b==='number' ? b : (b&&Number(b.exe))||0, linked:true}; return b ? {qtd:Number(b.qtd)||0, exe:Number(b.exe)||0, linked:true} : {qtd:Number(r.qtd)||0, exe:Number(r.exe)||0, linked:false}; }
+function calc(r){
+  const ds = days(); const plano = r.plano||{};
+  const weeks = []; for(let w=0; w<Math.ceil(ds.length/7); w++){
+    weeks.push(ds.slice(w*7,w*7+7).reduce((a,d)=>a+(Number(plano[d])||0),0));
+  }
+  const {qtd, exe} = qe(r), saldo = qtd-exe;
+  const total = weeks.reduce((a,b)=>a+b,0);
+  const apos = saldo-total;
+  return {saldo, weeks, total, apos, av: qtd ? (exe+total)/qtd : null};
+}
+
+/* ---------- render ---------- */
+const LISTS = {desc:'atividades', local:'locais', resp:'responsaveis'};
+function nomes(k, g){ return (cad[k]||[]).filter(x=>!g || (x.grupo||'ACESSOS')===g).map(x=>typeof x==='string'?x:x.nome); }
+const GRUPOS = ['ACESSOS','FUNDAÇÕES'];
+function grupoDe(nome){ const a = (cad.atividades||[]).find(x=>x.nome===nome); return a ? (a.grupo||'ACESSOS') : null; }
+let baseGrp = 'ACESSOS';
+function selectHtml(f, val, label, g){
+  const opts = nomes(LISTS[f], f==='local' ? g : undefined); const off = val && !opts.includes(val);
+  return '<select data-f="'+f+'" aria-label="'+label+'"'+(off?' class="off" title="Não está no cadastro"':'')+(canWrite?'':' disabled')+'>'+
+    '<option value="">— escolher —</option>'+(off?'<option selected>'+esc(val)+'</option>':'')+
+    (f==='desc' ? GRUPOS.map(gr=>'<optgroup label="'+gr+'">'+nomes('atividades',gr).map(o=>'<option'+(o===val?' selected':'')+'>'+esc(o)+'</option>').join('')+'</optgroup>').join('')
+      : opts.map(o=>'<option'+(o===val?' selected':'')+'>'+esc(o)+'</option>').join(''))+'</select>';
+}
+function renderBase(){
+  $('#seggrp').innerHTML = GRUPOS.map(g=>'<button type="button" data-g="'+g+'" aria-pressed="'+(g===baseGrp)+'">'+(g==='ACESSOS'?'Acessos':'Fundações')+'</button>').join('');
+  if(baseGrp==='FUNDAÇÕES'){ $('#segat').innerHTML=''; $('#segat').style.display='none'; renderFund(); return; }
+  $('#segat').style.display='';
+  const ats = nomes('atividades','ACESSOS'); if(!ats.includes(baseAt)) baseAt = ats[0]||'';
+  $('#segat').innerHTML = ats.map(a=>'<button type="button" data-at="'+esc(a)+'" aria-pressed="'+(a===baseAt)+'">'+esc(a)+'</button>').join('');
+  const at = (cad.atividades||[]).find(x=>x.nome===baseAt)||{}; const ds = days();
+  let tq=0, te=0, tp=0, h = '<thead><tr><th style="text-align:left">Acesso</th><th>Unid.</th><th>Qtd. projeto</th><th>Executado acumulado</th><th>Saldo</th><th>Avanço</th><th>Programado no período</th></tr></thead><tbody>';
+  for(const l of nomes('locais','ACESSOS')){
+    const k = l+'|'+baseAt, b = (cad.base||{})[k]||{}; const qq = Number(b.qtd)||0, ee = Number(b.exe)||0;
+    const pr = rows.filter(r=>bkey(r)===k).reduce((a,r)=>a+ds.reduce((x,d)=>x+(Number((r.plano||{})[d])||0),0),0);
+    tq+=qq; te+=ee; tp+=pr; const av = qq ? ee/qq : null;
+    h += '<tr><td class="l">'+esc(l)+'</td><td style="text-align:center;color:var(--muted)">'+esc(at.un||'')+'</td>'+
+      '<td><input class="num" data-bk="'+esc(k)+'" data-bf="qtd" inputmode="decimal" value="'+show(qq)+'" aria-label="Projeto '+esc(l)+'"'+(canWrite?'':' readonly')+'></td>'+
+      '<td><input class="num" data-bk="'+esc(k)+'" data-bf="exe" inputmode="decimal" value="'+show(ee)+'" aria-label="Executado '+esc(l)+'"'+(canWrite?'':' readonly')+'></td>'+
+      '<td class="calc">'+show(qq-ee)+'</td>'+
+      '<td><div class="prog'+(av>=.9999?' done':'')+'"><div class="bar"><i style="width:'+Math.max(0,Math.min(100,(av||0)*100))+'%"></i></div><span>'+(av===null?'–':Math.round(av*100)+'%')+'</span></div></td>'+
+      '<td class="calc tot">'+show(pr)+'</td></tr>';
+  }
+  h += '</tbody><tfoot><tr><td style="text-align:left">Total</td><td></td><td>'+show(tq)+'</td><td>'+show(te)+'</td><td>'+show(tq-te)+'</td><td>'+(tq?Math.round(te/tq*100)+'%':'–')+'</td><td>'+show(tp)+'</td></tr></tfoot>';
+  $('#tbase').innerHTML = h;
+}
+const STLAB = v => v>=1 ? 'Executado' : v>0 ? 'Em execução' : 'Não executado';
+function renderFund(){
+  const ets = nomes('atividades','FUNDAÇÕES'), fs = nomes('locais','FUNDAÇÕES'), ds = days();
+  let h = '<thead><tr><th style="text-align:left;position:sticky;left:0;z-index:2">Fundação</th>'+ets.map((e,i)=>'<th title="'+esc(e)+'" style="min-width:34px;writing-mode:vertical-rl;transform:rotate(180deg);height:200px;text-align:left;font-size:11px">'+(i+1)+'. '+esc(e)+'</th>').join('')+'<th>% Etapas</th></tr></thead><tbody>';
+  const col = ets.map(()=>0);
+  for(const f of fs){
+    let sum = 0;
+    h += '<tr><td class="l" style="position:sticky;left:0;background:var(--surface)">'+esc(f)+'</td>';
+    ets.forEach((e,i)=>{ const k = f+'|'+e, b = (cad.base||{})[k], v = typeof b==='number' ? b : (b&&Number(b.exe))||0; sum += v; col[i] += v>=1?1:0;
+      const prg = rows.some(r=>bkey(r)===k && ds.some(d=>Number((r.plano||{})[d])>0));
+      h += '<td style="padding:0"><button type="button" class="st st'+(v>=1?'2':v>0?'1':'0')+(prg?' prg':'')+'" data-fk="'+esc(k)+'" title="'+esc(f)+' · '+esc(e)+': '+STLAB(v)+(prg?' · programado no período':'')+'" aria-label="'+esc(f)+' '+esc(e)+': '+STLAB(v)+'"'+(canWrite?'':' disabled')+'>'+(v>=1?'1':v>0?'½':'')+'</button></td>'; });
+    h += '<td class="calc">'+(ets.length?Math.round(sum/ets.length*100):0)+'%</td></tr>';
+  }
+  h += '</tbody><tfoot><tr><td style="text-align:left;position:sticky;left:0">Executadas</td>'+col.map(c=>'<td style="text-align:center;padding:6px 2px">'+c+'</td>').join('')+'<td></td></tr></tfoot>';
+  $('#tbase').innerHTML = h;
+}
+function renderCad(){
+  renderBase();
+  $('#basehint').textContent = baseGrp==='ACESSOS' ? 'Projeto e executado acumulado de cada atividade em cada acesso. Fonte inicial: Controle de Acessos W47.' : 'Status de cada etapa em cada fundação. Clique na célula para alternar: vazio = não executado, ½ = em execução, 1 = executado. Contorno = programado no período. Fonte inicial: Controle de Fundações W47.';
+  const li = (k,x,i) => '<li data-k="'+k+'" data-i="'+i+'"><input value="'+esc(typeof x==='string'?x:x.nome)+'" data-c="nome" aria-label="Nome"'+(canWrite?'':' readonly')+'>'+
+    (k!=='responsaveis'?'<span class="gtag">'+((x.grupo||'ACESSOS')==='ACESSOS'?'Acesso':'Fundação')+'</span>':'')+
+    (k==='atividades'?'<input class="un" list="dl-un" value="'+esc(x.un||'')+'" data-c="un" aria-label="Unidade padrão"'+(canWrite?'':' readonly')+'>':'')+
+    (canWrite?'<button type="button" data-rm>Excluir</button>':'')+'</li>';
+  for(const [k,id,n] of [['atividades','#l-at','#n-at'],['locais','#l-lo','#n-lo'],['responsaveis','#l-re','#n-re']]){
+    const items = (cad[k]||[]).map((x,i)=>[x,i]).filter(([x])=>k==='responsaveis' || (x.grupo||'ACESSOS')===baseGrp);
+    $(id).innerHTML = items.map(([x,i])=>li(k,x,i)).join('') || '<li style="color:var(--muted);padding:8px">Nada cadastrado ainda</li>';
+    $(n).textContent = items.length+' itens'+(k!=='responsaveis'?' · '+(baseGrp==='ACESSOS'?'acessos':'fundações'):'');
+  }
+}
+function visibleWeeks(){const n=Math.ceil(cfg.dias/7);return filt.sem==='all'?[...Array(n).keys()]:[Number(filt.sem)]}
+function filtered(){
+  const q = filt.q.toLowerCase();
+  return rows.filter(r => (!filt.resp || r.resp===filt.resp) &&
+    (!q || (r.desc+' '+r.local+' '+r.resp).toLowerCase().includes(q)));
+}
+
+function render(){
+  const ae = document.activeElement, keep = (ae && (ae.tagName==='INPUT'||ae.tagName==='SELECT') && ae.closest('#grid')) ? {
+    id: ae.closest('tr').dataset.id, key: ae.dataset.f ? 'data-f="'+ae.dataset.f+'"' : 'data-d="'+ae.dataset.d+'"',
+    dirty: ae.value!==ae.defaultValue, value: ae.value, sel: ae.selectionStart } : null;
+  const ds = days(), nW = Math.ceil(ds.length/7), vis = visibleWeeks();
+  $('#periodo').innerHTML = 'Período: <b>'+dmy(ds[0])+'/'+ds[0].slice(0,4)+'</b> a <b>'+dmy(ds.at(-1))+'/'+ds.at(-1).slice(0,4)+'</b>';
+  $('#inicio').value = cfg.inicio; $('#ndias').value = String(cfg.dias);
+  // semanas
+  const seg = $('#segsem');
+  seg.innerHTML = '<button data-s="all" aria-pressed="'+(filt.sem==='all')+'">Todas</button>' +
+    [...Array(nW).keys()].map(w=>'<button data-s="'+w+'" aria-pressed="'+(filt.sem===String(w))+'">Semana '+(w+1)+'</button>').join('');
+  // responsáveis
+  const resps = [...new Set(rows.map(r=>r.resp).filter(Boolean))].sort();
+  $('#fresp').innerHTML = '<option value="">Todos os responsáveis</option>'+resps.map(r=>'<option'+(r===filt.resp?' selected':'')+'>'+esc(r)+'</option>').join('');
+  $('#dl-resp').innerHTML = resps.map(r=>'<option value="'+esc(r)+'">').join('');
+
+  renderCad();
+  const list = filtered();
+  // cabeçalho
+  let band = '<tr class="band"><th class="stick c-item" rowspan="2">Item</th><th class="stick c-desc" rowspan="2">Descrição (atividade)</th><th class="stick c-local" rowspan="2">Local</th><th colspan="5">Dados da atividade</th>';
+  let cols = '<tr class="cols"><th>Responsável</th><th>Unid.</th><th>Qtd. projeto</th><th>Executado acumulado</th><th>Saldo a executar</th>';
+  for(const w of vis){
+    const wd = ds.slice(w*7,w*7+7);
+    band += '<th colspan="'+(wd.length+1)+'">Semana '+(w+1)+' · '+dmy(wd[0])+' a '+dmy(wd.at(-1))+'</th>';
+    for(const d of wd){
+      const hol = cfg.feriados.includes(d), wk = [0,6].includes(wday(d));
+      cols += '<th class="day'+(hol?' hol':wk?' wk':'')+'" data-day="'+d+'" title="Clique para marcar/desmarcar feriado">'+dmy(d)+'<small>'+WD[wday(d)]+(hol?' · feriado':'')+'</small></th>';
+    }
+    cols += '<th>Total sem. '+(w+1)+'</th>';
+  }
+  band += '<th colspan="4">Resumo</th><th rowspan="2" aria-label="Ações"></th></tr>';
+  cols += '<th>Total programado</th><th>Saldo após programação</th><th>Avanço previsto</th><th>Status</th></tr>';
+
+  let body = '';
+  list.forEach(r=>{
+    const c = calc(r), plano = r.plano||{}, q = qe(r);
+    const ro = canWrite ? '' : ' readonly';
+    body += '<tr data-id="'+r.id+'">'+
+      '<td class="item stick c-item">'+(rows.indexOf(r)+1)+'</td>'+
+      '<td class="stick c-desc">'+selectHtml('desc',r.desc,'Descrição')+'</td>'+
+      '<td class="stick c-local">'+selectHtml('local',r.local,'Local',grupoDe(r.desc))+'</td>'+
+      '<td style="min-width:110px">'+selectHtml('resp',r.resp,'Responsável')+'</td>'+
+      '<td><input data-f="un" list="dl-un" value="'+esc(r.un)+'" aria-label="Unidade" style="width:56px;text-align:center"'+ro+'></td>'+
+      '<td><input class="num" data-f="qtd" inputmode="decimal" value="'+show(q.qtd)+'" aria-label="Quantidade de projeto" style="width:92px"'+(q.linked?' title="Vem da base de dados"':'')+ro+'></td>'+
+      '<td><input class="num" data-f="exe" inputmode="decimal" value="'+fmt.format(q.exe)+'"'+(q.linked?' title="Vem da base de dados"':'')+' aria-label="Executado acumulado" style="width:92px"'+ro+'></td>'+
+      '<td class="calc'+(c.saldo<0?' over':'')+'">'+(fmt.format(c.saldo))+'</td>';
+    for(const w of vis){
+      for(const d of ds.slice(w*7,w*7+7)){
+        const v = plano[d], hol = cfg.feriados.includes(d), wk=[0,6].includes(wday(d));
+        body += '<td class="'+(hol?'hol':wk?'wk':'')+(v?' hasv':'')+'"><input class="num" data-d="'+d+'" inputmode="decimal" value="'+show(v)+'" aria-label="'+esc(r.desc)+' em '+dmy(d)+'"'+ro+'></td>';
+      }
+      body += '<td class="calc tot">'+show(c.weeks[w])+'</td>';
+    }
+    const done = c.av!==null && c.apos<=1e-9 && c.saldo>0;
+    const st = c.apos < -1e-9 ? '<span class="pill bad"><i></i>Acima do saldo</span>'
+      : c.saldo<=1e-9 ? '<span class="pill ok"><i></i>Concluída</span>'
+      : done ? '<span class="pill ok"><i></i>Conclui no período</span>'
+      : c.total>0 ? '<span class="pill busy"><i></i>Em andamento</span>'
+      : '<span class="pill"><i></i>Sem programação</span>';
+    body += '<td class="calc tot">'+show(c.total)+'</td>'+
+      '<td class="calc'+(c.apos<-1e-9?' over':'')+'">'+(Math.abs(c.apos)<1e-9?'0':fmt.format(c.apos))+'</td>'+
+      '<td><div class="prog'+(c.av>=.9999?' done':'')+'"><div class="bar"><i style="width:'+Math.max(0,Math.min(100,(c.av||0)*100))+'%"></i></div><span>'+(c.av===null?'–':Math.round(c.av*100)+'%')+'</span></div></td>'+
+      '<td style="padding:0 6px">'+st+'</td>'+
+      '<td class="act">'+(canWrite?'<button data-del="'+r.id+'" title="Excluir atividade" aria-label="Excluir atividade">Excluir</button>':'')+'</td></tr>';
+  });
+  if(!list.length) body = '<tr><td colspan="40"><div class="empty">'+(rows.length?'Nenhuma atividade com esse filtro.':'Nenhuma atividade ainda. Clique em “+ Nova atividade”.')+'</div></td></tr>';
+  $('#grid').innerHTML = '<thead>'+band+cols+'</thead><tbody>'+body+'</tbody>';
+  $('#nova').disabled = !canWrite;
+  if(keep){ const el = document.querySelector('tr[data-id="'+keep.id+'"] input['+keep.key+']');
+    if(el){ if(keep.dirty) el.value = keep.value; el.focus({preventScroll:true}); try{ el.setSelectionRange(keep.sel,keep.sel); }catch(e){} } }
+  summary(list);
+}
+
+function summary(list){
+  const ds = days();
+  const cs = list.map(calc);
+  $('#t-ativ').textContent = list.length;
+  $('#t-ativ-h').textContent = filt.resp ? 'de '+rows.length+' no total' : [...new Set(list.map(r=>r.resp).filter(Boolean))].length+' responsáveis';
+  const prog = cs.filter(c=>c.total>0).length;
+  $('#t-prog').textContent = prog;
+  $('#t-prog-h').textContent = (list.length-prog)+' sem programação';
+  $('#t-fim').textContent = cs.filter(c=>c.saldo>1e-9 && c.apos<=1e-9 && c.total>0).length;
+  const over = cs.filter(c=>c.apos<-1e-9).length;
+  $('#t-over').textContent = over; $('#t-over-box').classList.toggle('alert', over>0);
+  // gráfico
+  const counts = ds.map(d=>list.filter(r=>Number((r.plano||{})[d])>0).length);
+  const max = Math.max(1,...counts), W = 700, H = 96, pad = 16, bw = (W)/ds.length;
+  $('#c-max').textContent = 'pico: '+Math.max(0,...counts)+' frentes';
+  let s = '<line x1="0" x2="'+W+'" y1="'+(H-pad)+'" y2="'+(H-pad)+'" stroke="var(--line)"/>';
+  ds.forEach((d,i)=>{
+    const h = counts[i]/max*(H-pad-16), x = i*bw+bw*.18, w = bw*.64;
+    const hol = cfg.feriados.includes(d), wk=[0,6].includes(wday(d));
+    s += '<rect x="'+x+'" y="'+(H-pad-h)+'" width="'+w+'" height="'+h+'" rx="2" fill="'+(hol?'var(--holiday-ink)':wk?'var(--muted)':'var(--accent)')+'" opacity="'+(hol||wk?.5:1)+'"/>';
+    if(counts[i]) s += '<text x="'+(x+w/2)+'" y="'+(H-pad-h-3)+'" text-anchor="middle" font-size="10" fill="var(--ink)">'+counts[i]+'</text>';
+    s += '<text x="'+(x+w/2)+'" y="'+(H-3)+'" text-anchor="middle" font-size="9.5" fill="var(--muted)">'+dmy(d).slice(0,2)+'</text>';
+  });
+  const svg = $('#chart'); svg.setAttribute('viewBox','0 0 '+W+' '+H); svg.setAttribute('preserveAspectRatio','none'); svg.innerHTML = s;
+}
+
+/* ---------- gravação ---------- */
+const writing = {};
+async function save(id, patch){
+  const r = rows.find(x=>x.id===id); if(!r) return;
+  // estado local imediato
+  if(patch.plano){ r.plano = {...(r.plano||{}), ...patch.plano}; } else Object.assign(r, patch);
+  render();
+  if(!db) return;
+  const body = {...r}; delete body.id;
+  while(writing[id]) await writing[id];
+  status('busy','Salvando…');
+  writing[id] = db.collection('atividades').doc(id).set(body)
+    .then(()=>status('ok','Salvo'))
+    .catch(e=>{ status('bad','Não salvou'); handleWriteErr(e); })
+    .finally(()=>{ delete writing[id]; });
+  await writing[id];
+}
+function handleWriteErr(e){
+  if(e && e.code==='invalid_argument'){ canWrite=false; banner('Você tem acesso só de leitura a este painel. Peça ao dono para te dar acesso de Colaborador.'); render(); }
+  else if(e && e.code==='quota_exceeded') banner('O painel atingiu o limite de armazenamento. Exclua atividades antigas para continuar.');
+  else toast('Não foi possível salvar. Tente de novo.');
+}
+async function saveCfg(){
+  render();
+  if(!db) return;
+  status('busy','Salvando…');
+  try{ await db.doc('config/periodo').set({...cfg}); status('ok','Salvo'); }catch(e){ status('bad','Não salvou'); handleWriteErr(e); }
+}
+function banner(t){const b=$('#banner');b.textContent=t;b.style.display='block'}
+
+/* ---------- eventos ---------- */
+$('#grid').addEventListener('change', e=>{
+  const inp = e.target;
+  if(inp.tagName==='SELECT'){
+    const id = inp.closest('tr').dataset.id, f = inp.dataset.f, patch = {[f]: inp.value};
+    if(f==='desc'){ const a = (cad.atividades||[]).find(x=>x.nome===inp.value); if(a && a.un) patch.un = a.un;
+      const r = rows.find(x=>x.id===id); if(a && r && r.local && !nomes('locais', a.grupo||'ACESSOS').includes(r.local)) patch.local = ''; }
+    save(id, patch); return;
+  }
+  if(inp.tagName!=='INPUT') return;
+  const id = inp.closest('tr').dataset.id;
+  if(inp.dataset.f){
+    const f = inp.dataset.f;
+    if(FIELDS.includes(f)) save(id,{[f]: inp.value.trim().toUpperCase()});
+    else { const n = parseNum(inp.value); if(Number.isNaN(n)){ toast('Número inválido: use 1.234,56'); inp.focus(); return; }
+      const r = rows.find(x=>x.id===id), k = r && bkey(r);
+      if(k && grupoDe(r.desc)==='FUNDAÇÕES'){ if(f==='exe'){ cad.base = {...(cad.base||{})}; cad.base[k] = Math.max(0,Math.min(1,n||0)); saveCad(); } else toast('Fundações: quantidade de projeto é sempre 1'); }
+      else if(k){ cad.base = {...(cad.base||{})}; cad.base[k] = {...(cad.base[k]||{qtd:Number(r.qtd)||0, exe:Number(r.exe)||0}), [f]: n ?? 0}; saveCad(); }
+      else save(id,{[f]: n ?? 0}); }
+  } else if(inp.dataset.d){
+    const n = parseNum(inp.value); if(Number.isNaN(n)){ toast('Número inválido: use 1.234,56'); return; }
+    save(id,{plano:{[inp.dataset.d]: n}});
+  }
+});
+$('#grid').addEventListener('keydown', e=>{
+  if(e.key!=='Enter' && e.key!=='ArrowDown' && e.key!=='ArrowUp') return;
+  const inp = e.target; if(inp.tagName!=='INPUT' || inp.list && e.key!=='Enter') return;
+  const td = inp.closest('td'), tr = td.parentElement, idx = [...tr.children].indexOf(td);
+  const next = (e.key==='ArrowUp' ? tr.previousElementSibling : tr.nextElementSibling);
+  if(next){ e.preventDefault(); const t = next.children[idx]?.querySelector('input'); t && (t.focus(), t.select()); }
+});
+$('#grid').addEventListener('click', async e=>{
+  const th = e.target.closest('th.day');
+  if(th && canWrite){
+    const d = th.dataset.day; const s = new Set(cfg.feriados); s.has(d)?s.delete(d):s.add(d);
+    cfg.feriados = [...s].sort(); toast(s.has(d)?dmy(d)+' marcado como feriado':dmy(d)+' deixou de ser feriado'); saveCfg(); return;
+  }
+  const del = e.target.closest('button[data-del]');
+  if(del){
+    if(!del.classList.contains('confirm')){ del.classList.add('confirm'); del.textContent='Confirmar'; setTimeout(()=>{ if(del.isConnected){del.classList.remove('confirm');del.textContent='Excluir';} },3000); return; }
+    const id = del.dataset.del; rows = rows.filter(r=>r.id!==id); render();
+    if(db){ try{ await db.collection('atividades').doc(id).delete(); toast('Atividade excluída'); }catch(err){ handleWriteErr(err); } }
+  }
+});
+$('#nova').addEventListener('click', async ()=>{
+  const ordem = Math.max(0,...rows.map(r=>r.ordem||0))+1;
+  const id = 'a'+Date.now().toString(36);
+  const r = {id, ordem, desc:'', local:'', resp: filt.resp||'', un:'UN.', qtd:0, exe:0, plano:{}};
+  rows.push(r); filt.q=''; $('#busca').value=''; render();
+  const inp = document.querySelector('tr[data-id="'+id+'"] select[data-f="desc"]'); if(inp){ inp.scrollIntoView({block:'center'}); inp.focus(); }
+  if(db){ const body={...r}; delete body.id; try{ await db.collection('atividades').doc(id).set(body); status('ok','Salvo'); }catch(e){ handleWriteErr(e); } }
+});
+$('#busca').addEventListener('input', e=>{ filt.q=e.target.value; render(); });
+$('#fresp').addEventListener('change', e=>{ filt.resp=e.target.value; render(); });
+$('#segsem').addEventListener('click', e=>{ const b=e.target.closest('button'); if(!b) return; filt.sem=b.dataset.s; render(); });
+$('#inicio').addEventListener('change', e=>{ if(!e.target.value) return; cfg.inicio=e.target.value; filt.sem='all'; saveCfg(); });
+$('#ndias').addEventListener('change', e=>{ cfg.dias=Number(e.target.value); filt.sem='all'; saveCfg(); });
+$('#copiar').addEventListener('click', async ()=>{
+  const ds = days(); const n2 = v => (v===null||v===undefined||v==='')?'':String(v).replace('.',',');
+  const head = ['Item','Descrição','Local','Responsável','Unidade','Qtd projeto','Executado acumulado','Saldo a executar',...ds.map(dmy),'Total programado','Saldo após programação'];
+  const lines = [head.join('\t')];
+  filtered().forEach((r,i)=>{ const c=calc(r); lines.push([rows.indexOf(r)+1,r.desc,r.local,r.resp,r.un,n2(r.qtd),n2(r.exe),n2(+c.saldo.toFixed(4)),...ds.map(d=>n2((r.plano||{})[d]||'')),n2(+c.total.toFixed(4)),n2(+c.apos.toFixed(4))].join('\t')); });
+  try{ await navigator.clipboard.writeText(lines.join('\n')); toast('Tabela copiada. Cole no Excel com Ctrl+V'); }
+  catch(e){ toast('O navegador bloqueou a cópia'); }
+});
+
+/* ---------- cadastro ---------- */
+async function saveCad(){
+  render();
+  if(!db) return;
+  status('busy','Salvando…');
+  try{ await db.doc('cadastro/base').set(structuredClone(cad)); status('ok','Salvo'); }catch(e){ status('bad','Não salvou'); handleWriteErr(e); }
+}
+function sortCad(k){ cad[k].sort((a,b)=>(a.nome||a).localeCompare(b.nome||b,'pt-BR',{numeric:true})); }
+$('#bcad').addEventListener('click',()=>{ const o=$('#cad').classList.toggle('open'); $('#bcad').setAttribute('aria-expanded',o); });
+function addCad(k, nome, un){
+  nome = nome.trim().toUpperCase(); if(!nome) return false;
+  if(nomes(k).includes(nome)){ toast(nome+' já está cadastrado'); return false; }
+  cad[k] = [...(cad[k]||[]), k==='atividades'?{nome, un:(un||'').trim().toUpperCase(), grupo:baseGrp} : k==='locais' ? {nome, grupo:baseGrp} : nome];
+  if(k!=='atividades') sortCad(k); saveCad(); toast(nome+' cadastrado'); return true;
+}
+$('#f-at').addEventListener('submit',e=>{ e.preventDefault(); if(addCad('atividades',$('#in-at').value,$('#in-un').value)){ $('#in-at').value=''; $('#in-un').value=''; $('#in-at').focus(); } });
+$('#f-lo').addEventListener('submit',e=>{ e.preventDefault(); if(addCad('locais',$('#in-lo').value)){ $('#in-lo').value=''; $('#in-lo').focus(); } });
+$('#f-re').addEventListener('submit',e=>{ e.preventDefault(); if(addCad('responsaveis',$('#in-re').value)){ $('#in-re').value=''; $('#in-re').focus(); } });
+$('#seggrp').addEventListener('click', e=>{ const b=e.target.closest('button[data-g]'); if(!b) return; baseGrp=b.dataset.g; renderCad(); });
+$('#tbase').addEventListener('click', e=>{ const b=e.target.closest('button[data-fk]'); if(!b || !canWrite) return;
+  const k=b.dataset.fk, ob=(cad.base||{})[k], cur= typeof ob==='number'?ob:(ob&&Number(ob.exe))||0, nv = cur>=1?0:cur>0?1:0.5;
+  cad.base = {...(cad.base||{})}; if(nv) cad.base[k] = nv; else delete cad.base[k]; saveCad(); });
+$('#segat').addEventListener('click', e=>{ const b=e.target.closest('button[data-at]'); if(!b) return; baseAt=b.dataset.at; renderBase(); });
+$('#cad').addEventListener('change', async e=>{
+  const inp = e.target;
+  if(inp.dataset.bk){ const n = parseNum(inp.value); if(Number.isNaN(n)){ toast('Número inválido: use 1.234,56'); return; }
+    cad.base = {...(cad.base||{})}; cad.base[inp.dataset.bk] = {...(cad.base[inp.dataset.bk]||{}), [inp.dataset.bf]: n ?? 0}; saveCad(); return; }
+  const li = inp.closest('li[data-k]'); if(!li || !inp.dataset.c) return;
+  const k = li.dataset.k, i = Number(li.dataset.i), v = inp.value.trim().toUpperCase();
+  const item = cad[k][i]; const old = typeof item==='string'?item:item.nome;
+  if(inp.dataset.c==='un'){ cad[k][i] = {...item, un:v}; saveCad(); return; }
+  if(!v){ inp.value = old; return; }
+  if(v!==old && nomes(k).includes(v)){ toast(v+' já está cadastrado'); inp.value = old; return; }
+  cad[k][i] = typeof item==='string' ? v : {...item, nome:v}; if(k!=='atividades') sortCad(k);
+  if(k!=='responsaveis' && v!==old){ const nb = {}; for(const [key,val] of Object.entries(cad.base||{})){ const [l,a] = key.split('|');
+      nb[ k==='locais' ? (l===old?v:l)+'|'+a : l+'|'+(a===old?v:a) ] = val; } cad.base = nb; }
+  await saveCad();
+  const f = Object.keys(LISTS).find(x=>LISTS[x]===k);
+  for(const r of rows.filter(r=>r[f]===old)) await save(r.id,{[f]:v});
+});
+$('#cad').addEventListener('click', e=>{
+  const b = e.target.closest('button[data-rm]'); if(!b) return;
+  if(!b.classList.contains('confirm')){ b.classList.add('confirm'); b.textContent='Confirmar'; setTimeout(()=>{ if(b.isConnected){ b.classList.remove('confirm'); b.textContent='Excluir'; } },3000); return; }
+  const li = b.closest('li'); cad[li.dataset.k].splice(Number(li.dataset.i),1); saveCad();
+});
+
+/* ---------- versão independente: dados salvos neste navegador ---------- */
+const SNAP = {"rows":[{"desc":"TERRAPLENAGEM (CORTE)","local":"ACESSO 11","resp":"LUCAS","un":"M3","qtd":0,"exe":0,"plano":{"2026-11-16":1760,"2026-11-17":1760,"2026-11-18":1760,"2026-11-19":1760,"2026-11-23":1760,"2026-11-24":1760,"2026-11-25":1760,"2026-11-26":1760,"2026-11-27":1760},"ordem":1,"id":"a001"},{"desc":"TERRAPLENAGEM (CORTE)","local":"ACESSO 13","resp":"LUCAS","un":"M3","qtd":0,"exe":0,"plano":{"2026-11-16":1760,"2026-11-17":1760,"2026-11-18":1760,"2026-11-19":1760,"2026-11-23":1760,"2026-11-24":1760,"2026-11-25":1760,"2026-11-26":1760,"2026-11-27":1760},"ordem":2,"id":"a002"},{"desc":"TERRAPLENAGEM (CORTE)","local":"ACESSO EXTERNO 03","resp":"LUCAS","un":"M3","qtd":0,"exe":0,"plano":{"2026-11-16":880,"2026-11-17":880,"2026-11-18":880,"2026-11-19":880,"2026-11-23":880,"2026-11-24":860.72},"ordem":3,"id":"a003"},{"desc":"TERRAPLENAGEM (ATERRO)","local":"ACESSO 11","resp":"LUCAS","un":"M3","qtd":0,"exe":0,"plano":{"2026-11-16":1440,"2026-11-17":1440,"2026-11-18":1440,"2026-11-19":1440,"2026-11-23":1440,"2026-11-24":1440,"2026-11-25":1440,"2026-11-26":1440,"2026-11-27":1440},"ordem":4,"id":"a004"},{"desc":"TERRAPLENAGEM (ATERRO)","local":"ACESSO 13","resp":"LUCAS","un":"M3","qtd":0,"exe":0,"plano":{"2026-11-16":1440,"2026-11-17":1440,"2026-11-18":1440,"2026-11-19":1440,"2026-11-23":1440,"2026-11-24":1440,"2026-11-25":1440,"2026-11-26":1440,"2026-11-27":1440},"ordem":5,"id":"a005"},{"desc":"TERRAPLENAGEM (ATERRO)","local":"ACESSO EXTERNO 03","resp":"LUCAS","un":"M3","qtd":0,"exe":0,"plano":{"2026-11-16":720,"2026-11-17":720,"2026-11-18":720,"2026-11-19":720,"2026-11-23":720,"2026-11-24":720,"2026-11-25":205.77},"ordem":6,"id":"a006"},{"desc":"SUBLEITO","local":"ACESSO EXTERNO 03","resp":"LUCAS","un":"M","qtd":0,"exe":0,"plano":{"2026-11-16":500,"2026-11-17":500,"2026-11-18":500,"2026-11-19":500,"2026-11-23":500,"2026-11-24":29.95},"ordem":7,"id":"a007"},{"desc":"SUB-BASE","local":"ACESSO EXTERNO 03","resp":"LUCAS","un":"M","qtd":0,"exe":0,"plano":{"2026-11-17":500,"2026-11-18":500,"2026-11-19":500,"2026-11-23":500,"2026-11-24":500,"2026-11-25":229.95},"ordem":8,"id":"a008"},{"desc":"BASE","local":"ACESSO 09","resp":"LUCAS","un":"M","qtd":0,"exe":0,"plano":{"2026-11-16":500,"2026-11-17":341.14},"ordem":9,"id":"a009"},{"desc":"BASE","local":"ACESSO 08","resp":"LUCAS","un":"M","qtd":0,"exe":0,"plano":{"2026-11-18":500,"2026-11-19":167.86},"ordem":10,"id":"a010"},{"desc":"BASE","local":"ACESSO EXTERNO 03","resp":"LUCAS","un":"M","qtd":0,"exe":0,"plano":{"2026-11-23":500,"2026-11-24":500,"2026-11-25":500,"2026-11-26":500,"2026-11-27":500},"ordem":11,"id":"a011"},{"desc":"CONCRETAGEM DA FUNDAÇÃO","local":"ROS-03-01","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-16":1},"ordem":12,"id":"a012"},{"desc":"DESFORMA","local":"ROS-03-01","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-19":1},"ordem":13,"id":"a013"},{"desc":"CONCRETAGEM DA FUNDAÇÃO","local":"ROS-03-02","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-17":1},"ordem":14,"id":"a014"},{"desc":"DESFORMA","local":"ROS-03-02","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-23":1},"ordem":15,"id":"a015"},{"desc":"CONCRETAGEM DA FUNDAÇÃO","local":"ROS-03-03","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-18":1},"ordem":16,"id":"a016"},{"desc":"DESFORMA","local":"ROS-03-03","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-24":1},"ordem":17,"id":"a017"},{"desc":"DESFORMA","local":"ROS-03-04","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-19":1},"ordem":18,"id":"a018"},{"desc":"CURA","local":"ROS-03-04","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-23":0.5},"ordem":19,"id":"a019"},{"desc":"DESFORMA","local":"ROS-03-05","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-23":1},"ordem":20,"id":"a020"},{"desc":"CURA","local":"ROS-03-05","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-24":0.5},"ordem":21,"id":"a021"},{"desc":"CURA","local":"ROS-04-01","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-16":0.5},"ordem":22,"id":"a022"},{"desc":"ACABAMENTO E TRATAMENTO DE FISSURAS","local":"ROS-04-01","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-17":1},"ordem":23,"id":"a023"},{"desc":"CURA","local":"ROS-04-02","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-17":0.5},"ordem":24,"id":"a024"},{"desc":"ACABAMENTO E TRATAMENTO DE FISSURAS","local":"ROS-04-02","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-18":1},"ordem":25,"id":"a025"},{"desc":"ESCAVAÇÃO","local":"ROS-04-03","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-18":1},"ordem":26,"id":"a026"},{"desc":"ENSAIO DE PLACA NO FUNDO DA VALA","local":"ROS-04-03","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-19":1},"ordem":27,"id":"a027"},{"desc":"ESCAVAÇÃO","local":"ROS-04-04","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-19":1},"ordem":28,"id":"a028"},{"desc":"ENSAIO DE PLACA NO FUNDO DA VALA","local":"ROS-04-04","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-23":1},"ordem":29,"id":"a029"},{"desc":"ACABAMENTO E TRATAMENTO DE FISSURAS","local":"ROS-04-05","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-23":1},"ordem":30,"id":"a030"},{"desc":"MALHA DE ATERRAMENTO EXTERNA DA FUNDAÇÃO","local":"ROS-04-05","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-24":1},"ordem":31,"id":"a031"},{"desc":"ACABAMENTO E TRATAMENTO DE FISSURAS","local":"ROS-05-01","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-16":1},"ordem":32,"id":"a032"},{"desc":"MALHA DE ATERRAMENTO EXTERNA DA FUNDAÇÃO","local":"ROS-05-01","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-17":1},"ordem":33,"id":"a033"},{"desc":"ACABAMENTO E TRATAMENTO DE FISSURAS","local":"ROS-05-02","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-17":1},"ordem":34,"id":"a034"},{"desc":"MALHA DE ATERRAMENTO EXTERNA DA FUNDAÇÃO","local":"ROS-05-02","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-18":1},"ordem":35,"id":"a035"},{"desc":"ACABAMENTO E TRATAMENTO DE FISSURAS","local":"ROS-05-03","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-18":1},"ordem":36,"id":"a036"},{"desc":"MALHA DE ATERRAMENTO EXTERNA DA FUNDAÇÃO","local":"ROS-05-03","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-19":1},"ordem":37,"id":"a037"},{"desc":"SUB-BASE (PLATAFORMA)","local":"ROS-05-04","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-19":0.5},"ordem":38,"id":"a038"},{"desc":"BASE (PLATAFORMA)","local":"ROS-05-04","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-23":1},"ordem":39,"id":"a039"},{"desc":"SUB-BASE (PLATAFORMA)","local":"ROS-05-05","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-23":1},"ordem":40,"id":"a040"},{"desc":"BASE (PLATAFORMA)","local":"ROS-05-05","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-24":1},"ordem":41,"id":"a041"},{"desc":"MALHA DE ATERRAMENTO EXTERNA DA FUNDAÇÃO","local":"ROS-06-01","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-16":0.5},"ordem":42,"id":"a042"},{"desc":"REATERRO DA BASE","local":"ROS-06-01","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-17":0.5},"ordem":43,"id":"a043"},{"desc":"MALHA DE ATERRAMENTO EXTERNA DA FUNDAÇÃO","local":"ROS-06-02","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-17":1},"ordem":44,"id":"a044"},{"desc":"REATERRO DA BASE","local":"ROS-06-02","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-18":1},"ordem":45,"id":"a045"},{"desc":"DRENAGEM SUPERFICIAL","local":"ROS-06-04","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-19":0.5},"ordem":46,"id":"a046"},{"desc":"DRENAGEM SUPERFICIAL","local":"ROS-07-01","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-16":0.5},"ordem":47,"id":"a047"},{"desc":"BGS","local":"ROS-07-02","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-17":1},"ordem":48,"id":"a048"},{"desc":"ÁREA DE PÁ","local":"ROS-07-02","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-18":0.5},"ordem":49,"id":"a049"},{"desc":"BASE (PLATAFORMA)","local":"ROS-07-03","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-18":0.5},"ordem":50,"id":"a050"},{"desc":"BGS","local":"ROS-07-03","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-19":1},"ordem":51,"id":"a051"},{"desc":"BGS","local":"ROS-07-04","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-19":1},"ordem":52,"id":"a052"},{"desc":"ÁREA DE PÁ","local":"ROS-07-04","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-23":0.5},"ordem":53,"id":"a053"},{"desc":"BGS","local":"ROS-07-05","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-23":1},"ordem":54,"id":"a054"},{"desc":"DRENAGEM SUPERFICIAL","local":"ROS-07-05","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-24":0.5},"ordem":55,"id":"a055"},{"desc":"SARJETA","local":"ACESSO 05","resp":"FERNANDO","un":"M","qtd":0,"exe":0,"plano":{"2026-11-16":300,"2026-11-17":300,"2026-11-18":300,"2026-11-19":212.78},"ordem":56,"id":"a056"},{"desc":"SARJETA","local":"ACESSO EXTERNO 01","resp":"FERNANDO","un":"M","qtd":0,"exe":0,"plano":{"2026-11-23":300,"2026-11-24":300,"2026-11-25":300,"2026-11-26":139},"ordem":57,"id":"a057"},{"desc":"VALETA","local":"ACESSO 05","resp":"FERNANDO","un":"M","qtd":0,"exe":0,"plano":{"2026-11-16":300,"2026-11-17":179.9},"ordem":58,"id":"a058"},{"desc":"VALETA","local":"ACESSO EXTERNO 01","resp":"FERNANDO","un":"M","qtd":0,"exe":0,"plano":{"2026-11-18":300,"2026-11-19":300,"2026-11-23":300,"2026-11-24":42},"ordem":59,"id":"a059"},{"desc":"VALETA","local":"ACESSO EXTERNO PRINCIPAL","resp":"FERNANDO","un":"M","qtd":0,"exe":0,"plano":{"2026-11-25":300,"2026-11-26":300,"2026-11-27":300},"ordem":60,"id":"a060"},{"desc":"MEIO FIO","local":"ACESSO 02","resp":"FERNANDO","un":"M","qtd":0,"exe":0,"plano":{"2026-11-16":19},"ordem":61,"id":"a061"},{"desc":"MEIO FIO","local":"ACESSO 05","resp":"FERNANDO","un":"M","qtd":0,"exe":0,"plano":{"2026-11-17":26.83},"ordem":62,"id":"a062"},{"desc":"MEIO FIO","local":"ACESSO EXTERNO 01","resp":"FERNANDO","un":"M","qtd":0,"exe":0,"plano":{"2026-11-18":17},"ordem":63,"id":"a063"},{"desc":"DESCIDA D'ÁGUA","local":"ACESSO 02","resp":"FERNANDO","un":"M","qtd":0,"exe":0,"plano":{"2026-11-16":7},"ordem":64,"id":"a064"},{"desc":"DESCIDA D'ÁGUA","local":"ACESSO 04","resp":"FERNANDO","un":"M","qtd":0,"exe":0,"plano":{"2026-11-17":7.35},"ordem":65,"id":"a065"},{"desc":"DESCIDA D'ÁGUA","local":"ACESSO 05","resp":"FERNANDO","un":"M","qtd":0,"exe":0,"plano":{"2026-11-18":7.42},"ordem":66,"id":"a066"},{"desc":"DESCIDA D'ÁGUA","local":"ACESSO EXTERNO 01","resp":"FERNANDO","un":"M","qtd":0,"exe":0,"plano":{"2026-11-19":10,"2026-11-23":10},"ordem":67,"id":"a067"},{"desc":"INSTALAÇÃO DE BUEIRO","local":"ACESSO EXTERNO 02","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-16":1},"ordem":68,"id":"a068"},{"desc":"INSTALAÇÃO DE BUEIRO","local":"ACESSO 12","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-18":1},"ordem":69,"id":"a069"},{"desc":"INSTALAÇÃO DE BUEIRO","local":"ACESSO 13","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-23":1,"2026-11-24":1},"ordem":70,"id":"a070"},{"desc":"INSTALAÇÃO DE BUEIRO","local":"ACESSO 14","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-26":1},"ordem":71,"id":"a071"},{"desc":"ALAS E DISSIPADORES","local":"ACESSO 04","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-17":1,"2026-11-18":1,"2026-11-19":1,"2026-11-23":1,"2026-11-24":1},"ordem":72,"id":"a072"},{"desc":"ALAS E DISSIPADORES","local":"ACESSO 05","resp":"FERNANDO","un":"UN.","qtd":0,"exe":0,"plano":{"2026-11-19":1,"2026-11-23":1,"2026-11-24":1,"2026-11-25":1,"2026-11-26":1,"2026-11-27":1},"ordem":73,"id":"a073"}],"cad":{"atividades":[{"nome":"TERRAPLENAGEM (CORTE)","un":"M3","grupo":"ACESSOS"},{"nome":"TERRAPLENAGEM (ATERRO)","un":"M3","grupo":"ACESSOS"},{"nome":"SUBLEITO","un":"M","grupo":"ACESSOS"},{"nome":"SUB-BASE","un":"M","grupo":"ACESSOS"},{"nome":"BASE","un":"M","grupo":"ACESSOS"},{"nome":"ASFALTO (TSD / CBUQ)","un":"M2","grupo":"ACESSOS"},{"nome":"INSTALAÇÃO DE BUEIRO","un":"UN.","grupo":"ACESSOS"},{"nome":"ALAS E DISSIPADORES","un":"UN.","grupo":"ACESSOS"},{"nome":"MEIO FIO","un":"M","grupo":"ACESSOS"},{"nome":"SARJETA","un":"M","grupo":"ACESSOS"},{"nome":"VALETA","un":"M","grupo":"ACESSOS"},{"nome":"DESCIDA D'ÁGUA","un":"M","grupo":"ACESSOS"},{"nome":"SONDAGEM","un":"UN.","grupo":"FUNDAÇÕES"},{"nome":"SUPRESSÃO VEGETAL","un":"UN.","grupo":"FUNDAÇÕES"},{"nome":"ESCAVAÇÃO","un":"UN.","grupo":"FUNDAÇÕES"},{"nome":"ENSAIO DE PLACA NO FUNDO DA VALA","un":"UN.","grupo":"FUNDAÇÕES"},{"nome":"RECOMPOSIÇÃO / REGULARIZAÇÃO DE FUNDO DE CAVA","un":"UN.","grupo":"FUNDAÇÕES"},{"nome":"SOLO-CIMENTO","un":"UN.","grupo":"FUNDAÇÕES"},{"nome":"LIBERAÇÃO","un":"UN.","grupo":"FUNDAÇÕES"},{"nome":"ELETRODUTOS INTERNOS DA FUNDAÇÃO","un":"UN.","grupo":"FUNDAÇÕES"},{"nome":"TRAVESSIA DE AERO","un":"UN.","grupo":"FUNDAÇÕES"},{"nome":"CONCRETO DE REGULARIZAÇÃO","un":"UN.","grupo":"FUNDAÇÕES"},{"nome":"MONTAGEM DO ANCHOR-CAGES","un":"UN.","grupo":"FUNDAÇÕES"},{"nome":"ARMAÇÃO","un":"UN.","grupo":"FUNDAÇÕES"},{"nome":"FORMA","un":"UN.","grupo":"FUNDAÇÕES"},{"nome":"MALHA DE ATERRAMENTO INTERNA DA FUNDAÇÃO","un":"UN.","grupo":"FUNDAÇÕES"},{"nome":"CONCRETAGEM DA FUNDAÇÃO","un":"UN.","grupo":"FUNDAÇÕES"},{"nome":"DESFORMA","un":"UN.","grupo":"FUNDAÇÕES"},{"nome":"CURA","un":"UN.","grupo":"FUNDAÇÕES"},{"nome":"ACABAMENTO E TRATAMENTO DE FISSURAS","un":"UN.","grupo":"FUNDAÇÕES"},{"nome":"MALHA DE ATERRAMENTO EXTERNA DA FUNDAÇÃO","un":"UN.","grupo":"FUNDAÇÕES"},{"nome":"REATERRO DA BASE","un":"UN.","grupo":"FUNDAÇÕES"},{"nome":"TERRAPLENAGEM (PLATAFORMA)","un":"UN.","grupo":"FUNDAÇÕES"},{"nome":"SUB-BASE (PLATAFORMA)","un":"UN.","grupo":"FUNDAÇÕES"},{"nome":"BASE (PLATAFORMA)","un":"UN.","grupo":"FUNDAÇÕES"},{"nome":"BGS","un":"UN.","grupo":"FUNDAÇÕES"},{"nome":"ÁREA DE PÁ","un":"UN.","grupo":"FUNDAÇÕES"},{"nome":"DRENAGEM SUPERFICIAL","un":"UN.","grupo":"FUNDAÇÕES"},{"nome":"ENSAIO DE PLACA (PLATAFORMA)","un":"UN.","grupo":"FUNDAÇÕES"}],"locais":[{"nome":"ACESSO EXTERNO PRINCIPAL","grupo":"ACESSOS"},{"nome":"ACESSO 01","grupo":"ACESSOS"},{"nome":"ACESSO 02","grupo":"ACESSOS"},{"nome":"ACESSO 03","grupo":"ACESSOS"},{"nome":"ACESSO 04","grupo":"ACESSOS"},{"nome":"ACESSO 05","grupo":"ACESSOS"},{"nome":"ACESSO 06","grupo":"ACESSOS"},{"nome":"ACESSO CANTEIRO 01","grupo":"ACESSOS"},{"nome":"ACESSO EXTERNO 01","grupo":"ACESSOS"},{"nome":"ACESSO SE","grupo":"ACESSOS"},{"nome":"ACESSO 10","grupo":"ACESSOS"},{"nome":"ACESSO EXTERNO 04","grupo":"ACESSOS"},{"nome":"ACESSO 09","grupo":"ACESSOS"},{"nome":"ACESSO 08","grupo":"ACESSOS"},{"nome":"ACESSO EXTERNO 02","grupo":"ACESSOS"},{"nome":"ACESSO EXTERNO 03","grupo":"ACESSOS"},{"nome":"ACESSO 11","grupo":"ACESSOS"},{"nome":"ACESSO 12","grupo":"ACESSOS"},{"nome":"ACESSO 13","grupo":"ACESSOS"},{"nome":"ACESSO 14","grupo":"ACESSOS"},{"nome":"ACESSO EXTERNO EXISTENTE","grupo":"ACESSOS"},{"nome":"ROS-03-01","grupo":"FUNDAÇÕES"},{"nome":"ROS-03-02","grupo":"FUNDAÇÕES"},{"nome":"ROS-03-03","grupo":"FUNDAÇÕES"},{"nome":"ROS-03-04","grupo":"FUNDAÇÕES"},{"nome":"ROS-03-05","grupo":"FUNDAÇÕES"},{"nome":"ROS-04-01","grupo":"FUNDAÇÕES"},{"nome":"ROS-04-02","grupo":"FUNDAÇÕES"},{"nome":"ROS-04-03","grupo":"FUNDAÇÕES"},{"nome":"ROS-04-04","grupo":"FUNDAÇÕES"},{"nome":"ROS-04-05","grupo":"FUNDAÇÕES"},{"nome":"ROS-05-01","grupo":"FUNDAÇÕES"},{"nome":"ROS-05-02","grupo":"FUNDAÇÕES"},{"nome":"ROS-05-03","grupo":"FUNDAÇÕES"},{"nome":"ROS-05-04","grupo":"FUNDAÇÕES"},{"nome":"ROS-05-05","grupo":"FUNDAÇÕES"},{"nome":"ROS-06-01","grupo":"FUNDAÇÕES"},{"nome":"ROS-06-02","grupo":"FUNDAÇÕES"},{"nome":"ROS-06-03","grupo":"FUNDAÇÕES"},{"nome":"ROS-06-04","grupo":"FUNDAÇÕES"},{"nome":"ROS-06-05","grupo":"FUNDAÇÕES"},{"nome":"ROS-07-01","grupo":"FUNDAÇÕES"},{"nome":"ROS-07-02","grupo":"FUNDAÇÕES"},{"nome":"ROS-07-03","grupo":"FUNDAÇÕES"},{"nome":"ROS-07-04","grupo":"FUNDAÇÕES"},{"nome":"ROS-07-05","grupo":"FUNDAÇÕES"}],"responsaveis":["FERNANDO","LUCAS"],"base":{"ACESSO EXTERNO PRINCIPAL|TERRAPLENAGEM (CORTE)":{"qtd":25208.8,"exe":25208.8},"ACESSO EXTERNO PRINCIPAL|TERRAPLENAGEM (ATERRO)":{"qtd":25501.25,"exe":25501.25},"ACESSO EXTERNO PRINCIPAL|SUBLEITO":{"qtd":6801.71,"exe":6801.71},"ACESSO EXTERNO PRINCIPAL|SUB-BASE":{"qtd":6801.71,"exe":6801.71},"ACESSO EXTERNO PRINCIPAL|BASE":{"qtd":6801.71,"exe":6801.71},"ACESSO 01|TERRAPLENAGEM (CORTE)":{"qtd":6378.06,"exe":6378.06},"ACESSO 01|TERRAPLENAGEM (ATERRO)":{"qtd":7165.41,"exe":7165.41},"ACESSO 01|SUBLEITO":{"qtd":2432.38,"exe":2432.38},"ACESSO 01|SUB-BASE":{"qtd":2432.38,"exe":2432.38},"ACESSO 01|BASE":{"qtd":2432.38,"exe":2432.38},"ACESSO 02|TERRAPLENAGEM (CORTE)":{"qtd":3434.31,"exe":3434.31},"ACESSO 02|TERRAPLENAGEM (ATERRO)":{"qtd":4081.15,"exe":4081.15},"ACESSO 02|SUBLEITO":{"qtd":364.23,"exe":364.23},"ACESSO 02|SUB-BASE":{"qtd":364.23,"exe":364.23},"ACESSO 02|BASE":{"qtd":364.23,"exe":364.23},"ACESSO 03|TERRAPLENAGEM (CORTE)":{"qtd":9668.5,"exe":9668.5},"ACESSO 03|TERRAPLENAGEM (ATERRO)":{"qtd":9819.06,"exe":9819.06},"ACESSO 03|SUBLEITO":{"qtd":483.55,"exe":483.55},"ACESSO 03|SUB-BASE":{"qtd":483.55,"exe":483.55},"ACESSO 03|BASE":{"qtd":483.55,"exe":483.55},"ACESSO 04|TERRAPLENAGEM (CORTE)":{"qtd":16488.12,"exe":16488.12},"ACESSO 04|TERRAPLENAGEM (ATERRO)":{"qtd":14202.65,"exe":14202.65},"ACESSO 04|SUBLEITO":{"qtd":2300.05,"exe":2300.05},"ACESSO 04|SUB-BASE":{"qtd":2300.05,"exe":2300.05},"ACESSO 04|BASE":{"qtd":2300.05,"exe":2300.05},"ACESSO 05|TERRAPLENAGEM (CORTE)":{"qtd":15260.57,"exe":15260.57},"ACESSO 05|TERRAPLENAGEM (ATERRO)":{"qtd":15926.84,"exe":15926.84},"ACESSO 05|SUBLEITO":{"qtd":2235.09,"exe":2235.09},"ACESSO 05|SUB-BASE":{"qtd":2235.09,"exe":2235.09},"ACESSO 05|BASE":{"qtd":2235.09,"exe":2235.09},"ACESSO 06|TERRAPLENAGEM (CORTE)":{"qtd":2556.42,"exe":2556.42},"ACESSO 06|TERRAPLENAGEM (ATERRO)":{"qtd":3988.31,"exe":3988.31},"ACESSO 06|SUBLEITO":{"qtd":405.88,"exe":405.88},"ACESSO 06|SUB-BASE":{"qtd":405.88,"exe":405.88},"ACESSO 06|BASE":{"qtd":405.88,"exe":405.88},"ACESSO CANTEIRO 01|TERRAPLENAGEM (CORTE)":{"qtd":1874.26,"exe":1874.26},"ACESSO CANTEIRO 01|TERRAPLENAGEM (ATERRO)":{"qtd":472.2,"exe":472.2},"ACESSO CANTEIRO 01|SUBLEITO":{"qtd":380.1,"exe":380.1},"ACESSO CANTEIRO 01|SUB-BASE":{"qtd":380.1,"exe":380.1},"ACESSO CANTEIRO 01|BASE":{"qtd":380.1,"exe":380.1},"ACESSO EXTERNO 01|TERRAPLENAGEM (CORTE)":{"qtd":4438.93,"exe":4438.93},"ACESSO EXTERNO 01|TERRAPLENAGEM (ATERRO)":{"qtd":14422.13,"exe":14422.13},"ACESSO EXTERNO 01|SUBLEITO":{"qtd":2481.9,"exe":2481.9},"ACESSO EXTERNO 01|SUB-BASE":{"qtd":2481.9,"exe":2481.9},"ACESSO EXTERNO 01|BASE":{"qtd":2481.9,"exe":2481.9},"ACESSO SE|TERRAPLENAGEM (CORTE)":{"qtd":6.42,"exe":6.42},"ACESSO SE|TERRAPLENAGEM (ATERRO)":{"qtd":4908.77,"exe":4908.77},"ACESSO SE|SUBLEITO":{"qtd":446.13,"exe":446.13},"ACESSO SE|SUB-BASE":{"qtd":446.13,"exe":446.13},"ACESSO SE|BASE":{"qtd":446.13,"exe":446.13},"ACESSO 10|TERRAPLENAGEM (CORTE)":{"qtd":8535.31,"exe":8535.31},"ACESSO 10|TERRAPLENAGEM (ATERRO)":{"qtd":8560.56,"exe":8560.56},"ACESSO 10|SUBLEITO":{"qtd":1699.99,"exe":1699.99},"ACESSO 10|SUB-BASE":{"qtd":1699.99,"exe":1699.99},"ACESSO 10|BASE":{"qtd":1699.99,"exe":1699.99},"ACESSO EXTERNO 04|TERRAPLENAGEM (CORTE)":{"qtd":3273.72,"exe":3273.72},"ACESSO EXTERNO 04|TERRAPLENAGEM (ATERRO)":{"qtd":6308.12,"exe":6308.12},"ACESSO EXTERNO 04|SUBLEITO":{"qtd":1107.75,"exe":1107.75},"ACESSO EXTERNO 04|SUB-BASE":{"qtd":1107.75,"exe":1107.75},"ACESSO EXTERNO 04|BASE":{"qtd":1107.75,"exe":1107.75},"ACESSO 09|TERRAPLENAGEM (CORTE)":{"qtd":5822.71,"exe":5822.71},"ACESSO 09|TERRAPLENAGEM (ATERRO)":{"qtd":9015.26,"exe":9015.26},"ACESSO 09|SUBLEITO":{"qtd":841.14,"exe":841.14},"ACESSO 09|SUB-BASE":{"qtd":841.14,"exe":841.14},"ACESSO 09|BASE":{"qtd":841.14,"exe":0},"ACESSO 08|TERRAPLENAGEM (CORTE)":{"qtd":11580.06,"exe":11580.06},"ACESSO 08|TERRAPLENAGEM (ATERRO)":{"qtd":7424.63,"exe":7424.63},"ACESSO 08|SUBLEITO":{"qtd":667.86,"exe":667.86},"ACESSO 08|SUB-BASE":{"qtd":667.86,"exe":667.86},"ACESSO 08|BASE":{"qtd":667.86,"exe":0},"ACESSO EXTERNO 02|TERRAPLENAGEM (CORTE)":{"qtd":4730.88,"exe":4730.88},"ACESSO EXTERNO 02|TERRAPLENAGEM (ATERRO)":{"qtd":5216.06,"exe":5216.06},"ACESSO EXTERNO 02|SUBLEITO":{"qtd":1175.71,"exe":1175.71},"ACESSO EXTERNO 02|SUB-BASE":{"qtd":1175.71,"exe":1175.71},"ACESSO EXTERNO 02|BASE":{"qtd":1175.71,"exe":1175.71},"ACESSO EXTERNO 03|TERRAPLENAGEM (CORTE)":{"qtd":6287.72,"exe":1027.0},"ACESSO EXTERNO 03|TERRAPLENAGEM (ATERRO)":{"qtd":8732.52,"exe":4206.75},"ACESSO EXTERNO 03|SUBLEITO":{"qtd":3476.36,"exe":946.41},"ACESSO EXTERNO 03|SUB-BASE":{"qtd":3476.36,"exe":746.41},"ACESSO EXTERNO 03|BASE":{"qtd":3476.36,"exe":146.41},"ACESSO 11|TERRAPLENAGEM (CORTE)":{"qtd":26542.43,"exe":1698.68},"ACESSO 11|TERRAPLENAGEM (ATERRO)":{"qtd":25505.05,"exe":3526.02},"ACESSO 11|SUBLEITO":{"qtd":2112.38,"exe":220},"ACESSO 11|SUB-BASE":{"qtd":2112.38,"exe":220},"ACESSO 11|BASE":{"qtd":2112.38,"exe":0},"ACESSO 12|TERRAPLENAGEM (CORTE)":{"qtd":12179.75,"exe":0},"ACESSO 12|TERRAPLENAGEM (ATERRO)":{"qtd":10935.0,"exe":0},"ACESSO 12|SUBLEITO":{"qtd":1267.55,"exe":0},"ACESSO 12|SUB-BASE":{"qtd":1267.55,"exe":0},"ACESSO 12|BASE":{"qtd":1267.55,"exe":0},"ACESSO 13|TERRAPLENAGEM (CORTE)":{"qtd":31576.7,"exe":0},"ACESSO 13|TERRAPLENAGEM (ATERRO)":{"qtd":31105.61,"exe":0},"ACESSO 13|SUBLEITO":{"qtd":1902.53,"exe":0},"ACESSO 13|SUB-BASE":{"qtd":1902.53,"exe":0},"ACESSO 13|BASE":{"qtd":1902.53,"exe":0},"ACESSO 14|TERRAPLENAGEM (CORTE)":{"qtd":8205.5,"exe":0},"ACESSO 14|TERRAPLENAGEM (ATERRO)":{"qtd":7864.32,"exe":0},"ACESSO 14|SUBLEITO":{"qtd":862.03,"exe":0},"ACESSO 14|SUB-BASE":{"qtd":862.03,"exe":0},"ACESSO 14|BASE":{"qtd":862.03,"exe":0},"ROS-03-01|SONDAGEM":1,"ROS-03-01|SUPRESSÃO VEGETAL":1,"ROS-03-01|ESCAVAÇÃO":1,"ROS-03-01|ENSAIO DE PLACA NO FUNDO DA VALA":1,"ROS-03-01|RECOMPOSIÇÃO / REGULARIZAÇÃO DE FUNDO DE CAVA":1,"ROS-03-01|SOLO-CIMENTO":1,"ROS-03-01|LIBERAÇÃO":1,"ROS-03-01|ELETRODUTOS INTERNOS DA FUNDAÇÃO":1,"ROS-03-01|TRAVESSIA DE AERO":1,"ROS-03-01|CONCRETO DE REGULARIZAÇÃO":1,"ROS-03-01|MONTAGEM DO ANCHOR-CAGES":1,"ROS-03-01|ARMAÇÃO":1,"ROS-03-01|FORMA":1,"ROS-03-01|MALHA DE ATERRAMENTO INTERNA DA FUNDAÇÃO":1,"ROS-03-01|TERRAPLENAGEM (PLATAFORMA)":1,"ROS-03-02|SONDAGEM":1,"ROS-03-02|SUPRESSÃO VEGETAL":1,"ROS-03-02|ESCAVAÇÃO":1,"ROS-03-02|ENSAIO DE PLACA NO FUNDO DA VALA":1,"ROS-03-02|RECOMPOSIÇÃO / REGULARIZAÇÃO DE FUNDO DE CAVA":1,"ROS-03-02|SOLO-CIMENTO":1,"ROS-03-02|LIBERAÇÃO":1,"ROS-03-02|ELETRODUTOS INTERNOS DA FUNDAÇÃO":1,"ROS-03-02|TRAVESSIA DE AERO":1,"ROS-03-02|CONCRETO DE REGULARIZAÇÃO":1,"ROS-03-02|MONTAGEM DO ANCHOR-CAGES":1,"ROS-03-02|ARMAÇÃO":1,"ROS-03-02|FORMA":1,"ROS-03-02|MALHA DE ATERRAMENTO INTERNA DA FUNDAÇÃO":1,"ROS-03-02|TERRAPLENAGEM (PLATAFORMA)":1,"ROS-03-03|SONDAGEM":1,"ROS-03-03|SUPRESSÃO VEGETAL":1,"ROS-03-03|ESCAVAÇÃO":1,"ROS-03-03|ENSAIO DE PLACA NO FUNDO DA VALA":1,"ROS-03-03|RECOMPOSIÇÃO / REGULARIZAÇÃO DE FUNDO DE CAVA":1,"ROS-03-03|SOLO-CIMENTO":1,"ROS-03-03|LIBERAÇÃO":1,"ROS-03-03|ELETRODUTOS INTERNOS DA FUNDAÇÃO":1,"ROS-03-03|TRAVESSIA DE AERO":1,"ROS-03-03|CONCRETO DE REGULARIZAÇÃO":1,"ROS-03-03|MONTAGEM DO ANCHOR-CAGES":1,"ROS-03-03|ARMAÇÃO":1,"ROS-03-03|FORMA":1,"ROS-03-03|MALHA DE ATERRAMENTO INTERNA DA FUNDAÇÃO":1,"ROS-03-03|TERRAPLENAGEM (PLATAFORMA)":1,"ROS-03-04|SONDAGEM":1,"ROS-03-04|SUPRESSÃO VEGETAL":1,"ROS-03-04|ESCAVAÇÃO":1,"ROS-03-04|ENSAIO DE PLACA NO FUNDO DA VALA":1,"ROS-03-04|RECOMPOSIÇÃO / REGULARIZAÇÃO DE FUNDO DE CAVA":1,"ROS-03-04|SOLO-CIMENTO":1,"ROS-03-04|LIBERAÇÃO":1,"ROS-03-04|ELETRODUTOS INTERNOS DA FUNDAÇÃO":1,"ROS-03-04|TRAVESSIA DE AERO":1,"ROS-03-04|CONCRETO DE REGULARIZAÇÃO":1,"ROS-03-04|MONTAGEM DO ANCHOR-CAGES":1,"ROS-03-04|ARMAÇÃO":1,"ROS-03-04|FORMA":1,"ROS-03-04|MALHA DE ATERRAMENTO INTERNA DA FUNDAÇÃO":1,"ROS-03-04|CONCRETAGEM DA FUNDAÇÃO":1,"ROS-03-04|CURA":0.5,"ROS-03-04|TERRAPLENAGEM (PLATAFORMA)":1,"ROS-03-05|SONDAGEM":1,"ROS-03-05|SUPRESSÃO VEGETAL":1,"ROS-03-05|ESCAVAÇÃO":1,"ROS-03-05|ENSAIO DE PLACA NO FUNDO DA VALA":1,"ROS-03-05|RECOMPOSIÇÃO / REGULARIZAÇÃO DE FUNDO DE CAVA":1,"ROS-03-05|SOLO-CIMENTO":1,"ROS-03-05|LIBERAÇÃO":1,"ROS-03-05|ELETRODUTOS INTERNOS DA FUNDAÇÃO":1,"ROS-03-05|TRAVESSIA DE AERO":1,"ROS-03-05|CONCRETO DE REGULARIZAÇÃO":1,"ROS-03-05|MONTAGEM DO ANCHOR-CAGES":1,"ROS-03-05|ARMAÇÃO":1,"ROS-03-05|FORMA":1,"ROS-03-05|MALHA DE ATERRAMENTO INTERNA DA FUNDAÇÃO":1,"ROS-03-05|CONCRETAGEM DA FUNDAÇÃO":1,"ROS-03-05|CURA":0.5,"ROS-03-05|TERRAPLENAGEM (PLATAFORMA)":1,"ROS-04-01|SONDAGEM":1,"ROS-04-01|SUPRESSÃO VEGETAL":1,"ROS-04-01|ESCAVAÇÃO":1,"ROS-04-01|ENSAIO DE PLACA NO FUNDO DA VALA":1,"ROS-04-01|RECOMPOSIÇÃO / REGULARIZAÇÃO DE FUNDO DE CAVA":1,"ROS-04-01|SOLO-CIMENTO":1,"ROS-04-01|LIBERAÇÃO":1,"ROS-04-01|ELETRODUTOS INTERNOS DA FUNDAÇÃO":1,"ROS-04-01|TRAVESSIA DE AERO":1,"ROS-04-01|CONCRETO DE REGULARIZAÇÃO":1,"ROS-04-01|MONTAGEM DO ANCHOR-CAGES":1,"ROS-04-01|ARMAÇÃO":1,"ROS-04-01|FORMA":1,"ROS-04-01|MALHA DE ATERRAMENTO INTERNA DA FUNDAÇÃO":1,"ROS-04-01|CONCRETAGEM DA FUNDAÇÃO":1,"ROS-04-01|DESFORMA":1,"ROS-04-01|CURA":0.5,"ROS-04-01|TERRAPLENAGEM (PLATAFORMA)":1,"ROS-04-02|SONDAGEM":1,"ROS-04-02|SUPRESSÃO VEGETAL":1,"ROS-04-02|ESCAVAÇÃO":1,"ROS-04-02|ENSAIO DE PLACA NO FUNDO DA VALA":1,"ROS-04-02|RECOMPOSIÇÃO / REGULARIZAÇÃO DE FUNDO DE CAVA":1,"ROS-04-02|SOLO-CIMENTO":1,"ROS-04-02|LIBERAÇÃO":1,"ROS-04-02|ELETRODUTOS INTERNOS DA FUNDAÇÃO":1,"ROS-04-02|TRAVESSIA DE AERO":1,"ROS-04-02|CONCRETO DE REGULARIZAÇÃO":1,"ROS-04-02|MONTAGEM DO ANCHOR-CAGES":1,"ROS-04-02|ARMAÇÃO":1,"ROS-04-02|FORMA":1,"ROS-04-02|MALHA DE ATERRAMENTO INTERNA DA FUNDAÇÃO":1,"ROS-04-02|CONCRETAGEM DA FUNDAÇÃO":1,"ROS-04-02|DESFORMA":1,"ROS-04-02|CURA":0.5,"ROS-04-02|TERRAPLENAGEM (PLATAFORMA)":1,"ROS-04-03|SONDAGEM":1,"ROS-04-03|SUPRESSÃO VEGETAL":1,"ROS-04-04|SONDAGEM":1,"ROS-04-04|SUPRESSÃO VEGETAL":1,"ROS-04-05|SONDAGEM":1,"ROS-04-05|SUPRESSÃO VEGETAL":1,"ROS-04-05|ESCAVAÇÃO":1,"ROS-04-05|ENSAIO DE PLACA NO FUNDO DA VALA":1,"ROS-04-05|RECOMPOSIÇÃO / REGULARIZAÇÃO DE FUNDO DE CAVA":1,"ROS-04-05|SOLO-CIMENTO":1,"ROS-04-05|LIBERAÇÃO":1,"ROS-04-05|ELETRODUTOS INTERNOS DA FUNDAÇÃO":1,"ROS-04-05|TRAVESSIA DE AERO":1,"ROS-04-05|CONCRETO DE REGULARIZAÇÃO":1,"ROS-04-05|MONTAGEM DO ANCHOR-CAGES":1,"ROS-04-05|ARMAÇÃO":1,"ROS-04-05|FORMA":1,"ROS-04-05|MALHA DE ATERRAMENTO INTERNA DA FUNDAÇÃO":1,"ROS-04-05|CONCRETAGEM DA FUNDAÇÃO":1,"ROS-04-05|DESFORMA":1,"ROS-04-05|CURA":1,"ROS-04-05|TERRAPLENAGEM (PLATAFORMA)":1,"ROS-05-01|SONDAGEM":1,"ROS-05-01|SUPRESSÃO VEGETAL":1,"ROS-05-01|ESCAVAÇÃO":1,"ROS-05-01|ENSAIO DE PLACA NO FUNDO DA VALA":1,"ROS-05-01|RECOMPOSIÇÃO / REGULARIZAÇÃO DE FUNDO DE CAVA":1,"ROS-05-01|SOLO-CIMENTO":1,"ROS-05-01|LIBERAÇÃO":1,"ROS-05-01|ELETRODUTOS INTERNOS DA FUNDAÇÃO":1,"ROS-05-01|TRAVESSIA DE AERO":1,"ROS-05-01|CONCRETO DE REGULARIZAÇÃO":1,"ROS-05-01|MONTAGEM DO ANCHOR-CAGES":1,"ROS-05-01|ARMAÇÃO":1,"ROS-05-01|FORMA":1,"ROS-05-01|MALHA DE ATERRAMENTO INTERNA DA FUNDAÇÃO":1,"ROS-05-01|CONCRETAGEM DA FUNDAÇÃO":1,"ROS-05-01|DESFORMA":1,"ROS-05-01|CURA":1,"ROS-05-01|TERRAPLENAGEM (PLATAFORMA)":1,"ROS-05-02|SONDAGEM":1,"ROS-05-02|SUPRESSÃO VEGETAL":1,"ROS-05-02|ESCAVAÇÃO":1,"ROS-05-02|ENSAIO DE PLACA NO FUNDO DA VALA":1,"ROS-05-02|RECOMPOSIÇÃO / REGULARIZAÇÃO DE FUNDO DE CAVA":1,"ROS-05-02|SOLO-CIMENTO":1,"ROS-05-02|LIBERAÇÃO":1,"ROS-05-02|ELETRODUTOS INTERNOS DA FUNDAÇÃO":1,"ROS-05-02|TRAVESSIA DE AERO":1,"ROS-05-02|CONCRETO DE REGULARIZAÇÃO":1,"ROS-05-02|MONTAGEM DO ANCHOR-CAGES":1,"ROS-05-02|ARMAÇÃO":1,"ROS-05-02|FORMA":1,"ROS-05-02|MALHA DE ATERRAMENTO INTERNA DA FUNDAÇÃO":1,"ROS-05-02|CONCRETAGEM DA FUNDAÇÃO":1,"ROS-05-02|DESFORMA":1,"ROS-05-02|CURA":1,"ROS-05-02|TERRAPLENAGEM (PLATAFORMA)":1,"ROS-05-03|SONDAGEM":1,"ROS-05-03|SUPRESSÃO VEGETAL":1,"ROS-05-03|ESCAVAÇÃO":1,"ROS-05-03|ENSAIO DE PLACA NO FUNDO DA VALA":1,"ROS-05-03|RECOMPOSIÇÃO / REGULARIZAÇÃO DE FUNDO DE CAVA":1,"ROS-05-03|SOLO-CIMENTO":1,"ROS-05-03|LIBERAÇÃO":1,"ROS-05-03|ELETRODUTOS INTERNOS DA FUNDAÇÃO":1,"ROS-05-03|TRAVESSIA DE AERO":1,"ROS-05-03|CONCRETO DE REGULARIZAÇÃO":1,"ROS-05-03|MONTAGEM DO ANCHOR-CAGES":1,"ROS-05-03|ARMAÇÃO":1,"ROS-05-03|FORMA":1,"ROS-05-03|MALHA DE ATERRAMENTO INTERNA DA FUNDAÇÃO":1,"ROS-05-03|CONCRETAGEM DA FUNDAÇÃO":1,"ROS-05-03|DESFORMA":1,"ROS-05-03|CURA":1,"ROS-05-03|TERRAPLENAGEM (PLATAFORMA)":1,"ROS-05-04|SONDAGEM":1,"ROS-05-04|SUPRESSÃO VEGETAL":1,"ROS-05-04|ESCAVAÇÃO":1,"ROS-05-04|ENSAIO DE PLACA NO FUNDO DA VALA":1,"ROS-05-04|RECOMPOSIÇÃO / REGULARIZAÇÃO DE FUNDO DE CAVA":1,"ROS-05-04|SOLO-CIMENTO":1,"ROS-05-04|LIBERAÇÃO":1,"ROS-05-04|ELETRODUTOS INTERNOS DA FUNDAÇÃO":1,"ROS-05-04|TRAVESSIA DE AERO":1,"ROS-05-04|CONCRETO DE REGULARIZAÇÃO":1,"ROS-05-04|MONTAGEM DO ANCHOR-CAGES":1,"ROS-05-04|ARMAÇÃO":1,"ROS-05-04|FORMA":1,"ROS-05-04|MALHA DE ATERRAMENTO INTERNA DA FUNDAÇÃO":1,"ROS-05-04|CONCRETAGEM DA FUNDAÇÃO":1,"ROS-05-04|DESFORMA":1,"ROS-05-04|CURA":1,"ROS-05-04|ACABAMENTO E TRATAMENTO DE FISSURAS":1,"ROS-05-04|MALHA DE ATERRAMENTO EXTERNA DA FUNDAÇÃO":1,"ROS-05-04|REATERRO DA BASE":1,"ROS-05-04|TERRAPLENAGEM (PLATAFORMA)":1,"ROS-05-04|SUB-BASE (PLATAFORMA)":0.5,"ROS-05-05|SONDAGEM":1,"ROS-05-05|SUPRESSÃO VEGETAL":1,"ROS-05-05|ESCAVAÇÃO":1,"ROS-05-05|ENSAIO DE PLACA NO FUNDO DA VALA":1,"ROS-05-05|RECOMPOSIÇÃO / REGULARIZAÇÃO DE FUNDO DE CAVA":1,"ROS-05-05|SOLO-CIMENTO":1,"ROS-05-05|LIBERAÇÃO":1,"ROS-05-05|ELETRODUTOS INTERNOS DA FUNDAÇÃO":1,"ROS-05-05|TRAVESSIA DE AERO":1,"ROS-05-05|CONCRETO DE REGULARIZAÇÃO":1,"ROS-05-05|MONTAGEM DO ANCHOR-CAGES":1,"ROS-05-05|ARMAÇÃO":1,"ROS-05-05|FORMA":1,"ROS-05-05|MALHA DE ATERRAMENTO INTERNA DA FUNDAÇÃO":1,"ROS-05-05|CONCRETAGEM DA FUNDAÇÃO":1,"ROS-05-05|DESFORMA":1,"ROS-05-05|CURA":1,"ROS-05-05|ACABAMENTO E TRATAMENTO DE FISSURAS":1,"ROS-05-05|MALHA DE ATERRAMENTO EXTERNA DA FUNDAÇÃO":1,"ROS-05-05|REATERRO DA BASE":1,"ROS-05-05|TERRAPLENAGEM (PLATAFORMA)":1,"ROS-06-01|SONDAGEM":1,"ROS-06-01|SUPRESSÃO VEGETAL":1,"ROS-06-01|ESCAVAÇÃO":1,"ROS-06-01|ENSAIO DE PLACA NO FUNDO DA VALA":1,"ROS-06-01|RECOMPOSIÇÃO / REGULARIZAÇÃO DE FUNDO DE CAVA":1,"ROS-06-01|SOLO-CIMENTO":1,"ROS-06-01|LIBERAÇÃO":1,"ROS-06-01|ELETRODUTOS INTERNOS DA FUNDAÇÃO":1,"ROS-06-01|TRAVESSIA DE AERO":1,"ROS-06-01|CONCRETO DE REGULARIZAÇÃO":1,"ROS-06-01|MONTAGEM DO ANCHOR-CAGES":1,"ROS-06-01|ARMAÇÃO":1,"ROS-06-01|FORMA":1,"ROS-06-01|MALHA DE ATERRAMENTO INTERNA DA FUNDAÇÃO":1,"ROS-06-01|CONCRETAGEM DA FUNDAÇÃO":1,"ROS-06-01|DESFORMA":1,"ROS-06-01|CURA":1,"ROS-06-01|ACABAMENTO E TRATAMENTO DE FISSURAS":1,"ROS-06-01|MALHA DE ATERRAMENTO EXTERNA DA FUNDAÇÃO":0.5,"ROS-06-01|REATERRO DA BASE":0.5,"ROS-06-01|TERRAPLENAGEM (PLATAFORMA)":1,"ROS-06-02|SONDAGEM":1,"ROS-06-02|SUPRESSÃO VEGETAL":1,"ROS-06-02|ESCAVAÇÃO":1,"ROS-06-02|ENSAIO DE PLACA NO FUNDO DA VALA":1,"ROS-06-02|RECOMPOSIÇÃO / REGULARIZAÇÃO DE FUNDO DE CAVA":1,"ROS-06-02|SOLO-CIMENTO":1,"ROS-06-02|LIBERAÇÃO":1,"ROS-06-02|ELETRODUTOS INTERNOS DA FUNDAÇÃO":1,"ROS-06-02|TRAVESSIA DE AERO":1,"ROS-06-02|CONCRETO DE REGULARIZAÇÃO":1,"ROS-06-02|MONTAGEM DO ANCHOR-CAGES":1,"ROS-06-02|ARMAÇÃO":1,"ROS-06-02|FORMA":1,"ROS-06-02|MALHA DE ATERRAMENTO INTERNA DA FUNDAÇÃO":1,"ROS-06-02|CONCRETAGEM DA FUNDAÇÃO":1,"ROS-06-02|DESFORMA":1,"ROS-06-02|CURA":1,"ROS-06-02|ACABAMENTO E TRATAMENTO DE FISSURAS":1,"ROS-06-02|TERRAPLENAGEM (PLATAFORMA)":1,"ROS-06-03|SONDAGEM":1,"ROS-06-03|SUPRESSÃO VEGETAL":1,"ROS-06-03|ESCAVAÇÃO":1,"ROS-06-03|ENSAIO DE PLACA NO FUNDO DA VALA":1,"ROS-06-03|RECOMPOSIÇÃO / REGULARIZAÇÃO DE FUNDO DE CAVA":1,"ROS-06-03|SOLO-CIMENTO":1,"ROS-06-03|LIBERAÇÃO":1,"ROS-06-03|ELETRODUTOS INTERNOS DA FUNDAÇÃO":1,"ROS-06-03|TRAVESSIA DE AERO":1,"ROS-06-03|CONCRETO DE REGULARIZAÇÃO":1,"ROS-06-03|MONTAGEM DO ANCHOR-CAGES":1,"ROS-06-03|ARMAÇÃO":1,"ROS-06-03|FORMA":1,"ROS-06-03|MALHA DE ATERRAMENTO INTERNA DA FUNDAÇÃO":1,"ROS-06-03|CONCRETAGEM DA FUNDAÇÃO":1,"ROS-06-03|DESFORMA":1,"ROS-06-03|CURA":1,"ROS-06-03|ACABAMENTO E TRATAMENTO DE FISSURAS":1,"ROS-06-03|MALHA DE ATERRAMENTO EXTERNA DA FUNDAÇÃO":1,"ROS-06-03|REATERRO DA BASE":1,"ROS-06-03|TERRAPLENAGEM (PLATAFORMA)":1,"ROS-06-03|SUB-BASE (PLATAFORMA)":1,"ROS-06-03|BASE (PLATAFORMA)":1,"ROS-06-03|BGS":1,"ROS-06-03|ÁREA DE PÁ":1,"ROS-06-03|DRENAGEM SUPERFICIAL":1,"ROS-06-03|ENSAIO DE PLACA (PLATAFORMA)":1,"ROS-06-04|SONDAGEM":1,"ROS-06-04|SUPRESSÃO VEGETAL":1,"ROS-06-04|ESCAVAÇÃO":1,"ROS-06-04|ENSAIO DE PLACA NO FUNDO DA VALA":1,"ROS-06-04|RECOMPOSIÇÃO / REGULARIZAÇÃO DE FUNDO DE CAVA":1,"ROS-06-04|SOLO-CIMENTO":1,"ROS-06-04|LIBERAÇÃO":1,"ROS-06-04|ELETRODUTOS INTERNOS DA FUNDAÇÃO":1,"ROS-06-04|TRAVESSIA DE AERO":1,"ROS-06-04|CONCRETO DE REGULARIZAÇÃO":1,"ROS-06-04|MONTAGEM DO ANCHOR-CAGES":1,"ROS-06-04|ARMAÇÃO":1,"ROS-06-04|FORMA":1,"ROS-06-04|MALHA DE ATERRAMENTO INTERNA DA FUNDAÇÃO":1,"ROS-06-04|CONCRETAGEM DA FUNDAÇÃO":1,"ROS-06-04|DESFORMA":1,"ROS-06-04|CURA":1,"ROS-06-04|ACABAMENTO E TRATAMENTO DE FISSURAS":1,"ROS-06-04|MALHA DE ATERRAMENTO EXTERNA DA FUNDAÇÃO":1,"ROS-06-04|REATERRO DA BASE":1,"ROS-06-04|TERRAPLENAGEM (PLATAFORMA)":1,"ROS-06-04|SUB-BASE (PLATAFORMA)":1,"ROS-06-04|BASE (PLATAFORMA)":1,"ROS-06-04|BGS":1,"ROS-06-04|ÁREA DE PÁ":1,"ROS-06-04|DRENAGEM SUPERFICIAL":0.5,"ROS-06-04|ENSAIO DE PLACA (PLATAFORMA)":1,"ROS-06-05|SONDAGEM":1,"ROS-06-05|SUPRESSÃO VEGETAL":1,"ROS-06-05|ESCAVAÇÃO":1,"ROS-06-05|ENSAIO DE PLACA NO FUNDO DA VALA":1,"ROS-06-05|RECOMPOSIÇÃO / REGULARIZAÇÃO DE FUNDO DE CAVA":1,"ROS-06-05|SOLO-CIMENTO":1,"ROS-06-05|LIBERAÇÃO":1,"ROS-06-05|ELETRODUTOS INTERNOS DA FUNDAÇÃO":1,"ROS-06-05|TRAVESSIA DE AERO":1,"ROS-06-05|CONCRETO DE REGULARIZAÇÃO":1,"ROS-06-05|MONTAGEM DO ANCHOR-CAGES":1,"ROS-06-05|ARMAÇÃO":1,"ROS-06-05|FORMA":1,"ROS-06-05|MALHA DE ATERRAMENTO INTERNA DA FUNDAÇÃO":1,"ROS-06-05|CONCRETAGEM DA FUNDAÇÃO":1,"ROS-06-05|DESFORMA":1,"ROS-06-05|CURA":1,"ROS-06-05|ACABAMENTO E TRATAMENTO DE FISSURAS":1,"ROS-06-05|MALHA DE ATERRAMENTO EXTERNA DA FUNDAÇÃO":1,"ROS-06-05|REATERRO DA BASE":1,"ROS-06-05|TERRAPLENAGEM (PLATAFORMA)":1,"ROS-06-05|SUB-BASE (PLATAFORMA)":1,"ROS-06-05|BASE (PLATAFORMA)":1,"ROS-06-05|BGS":1,"ROS-06-05|ÁREA DE PÁ":1,"ROS-06-05|DRENAGEM SUPERFICIAL":1,"ROS-06-05|ENSAIO DE PLACA (PLATAFORMA)":1,"ROS-07-01|SONDAGEM":1,"ROS-07-01|SUPRESSÃO VEGETAL":1,"ROS-07-01|ESCAVAÇÃO":1,"ROS-07-01|ENSAIO DE PLACA NO FUNDO DA VALA":1,"ROS-07-01|RECOMPOSIÇÃO / REGULARIZAÇÃO DE FUNDO DE CAVA":1,"ROS-07-01|SOLO-CIMENTO":1,"ROS-07-01|LIBERAÇÃO":1,"ROS-07-01|ELETRODUTOS INTERNOS DA FUNDAÇÃO":1,"ROS-07-01|TRAVESSIA DE AERO":1,"ROS-07-01|CONCRETO DE REGULARIZAÇÃO":1,"ROS-07-01|MONTAGEM DO ANCHOR-CAGES":1,"ROS-07-01|ARMAÇÃO":1,"ROS-07-01|FORMA":1,"ROS-07-01|MALHA DE ATERRAMENTO INTERNA DA FUNDAÇÃO":1,"ROS-07-01|CONCRETAGEM DA FUNDAÇÃO":1,"ROS-07-01|DESFORMA":1,"ROS-07-01|CURA":1,"ROS-07-01|ACABAMENTO E TRATAMENTO DE FISSURAS":1,"ROS-07-01|MALHA DE ATERRAMENTO EXTERNA DA FUNDAÇÃO":1,"ROS-07-01|REATERRO DA BASE":1,"ROS-07-01|TERRAPLENAGEM (PLATAFORMA)":1,"ROS-07-01|SUB-BASE (PLATAFORMA)":1,"ROS-07-01|BASE (PLATAFORMA)":1,"ROS-07-01|BGS":1,"ROS-07-01|ÁREA DE PÁ":1,"ROS-07-01|DRENAGEM SUPERFICIAL":0.5,"ROS-07-01|ENSAIO DE PLACA (PLATAFORMA)":1,"ROS-07-02|SONDAGEM":1,"ROS-07-02|SUPRESSÃO VEGETAL":1,"ROS-07-02|ESCAVAÇÃO":1,"ROS-07-02|ENSAIO DE PLACA NO FUNDO DA VALA":1,"ROS-07-02|RECOMPOSIÇÃO / REGULARIZAÇÃO DE FUNDO DE CAVA":1,"ROS-07-02|SOLO-CIMENTO":1,"ROS-07-02|LIBERAÇÃO":1,"ROS-07-02|ELETRODUTOS INTERNOS DA FUNDAÇÃO":1,"ROS-07-02|TRAVESSIA DE AERO":1,"ROS-07-02|CONCRETO DE REGULARIZAÇÃO":1,"ROS-07-02|MONTAGEM DO ANCHOR-CAGES":1,"ROS-07-02|ARMAÇÃO":1,"ROS-07-02|FORMA":1,"ROS-07-02|MALHA DE ATERRAMENTO INTERNA DA FUNDAÇÃO":1,"ROS-07-02|CONCRETAGEM DA FUNDAÇÃO":1,"ROS-07-02|DESFORMA":1,"ROS-07-02|CURA":1,"ROS-07-02|ACABAMENTO E TRATAMENTO DE FISSURAS":1,"ROS-07-02|MALHA DE ATERRAMENTO EXTERNA DA FUNDAÇÃO":1,"ROS-07-02|REATERRO DA BASE":1,"ROS-07-02|TERRAPLENAGEM (PLATAFORMA)":1,"ROS-07-02|SUB-BASE (PLATAFORMA)":1,"ROS-07-02|BASE (PLATAFORMA)":1,"ROS-07-02|ÁREA DE PÁ":0.5,"ROS-07-03|SONDAGEM":1,"ROS-07-03|SUPRESSÃO VEGETAL":1,"ROS-07-03|ESCAVAÇÃO":1,"ROS-07-03|ENSAIO DE PLACA NO FUNDO DA VALA":1,"ROS-07-03|RECOMPOSIÇÃO / REGULARIZAÇÃO DE FUNDO DE CAVA":1,"ROS-07-03|SOLO-CIMENTO":1,"ROS-07-03|LIBERAÇÃO":1,"ROS-07-03|ELETRODUTOS INTERNOS DA FUNDAÇÃO":1,"ROS-07-03|TRAVESSIA DE AERO":1,"ROS-07-03|CONCRETO DE REGULARIZAÇÃO":1,"ROS-07-03|MONTAGEM DO ANCHOR-CAGES":1,"ROS-07-03|ARMAÇÃO":1,"ROS-07-03|FORMA":1,"ROS-07-03|MALHA DE ATERRAMENTO INTERNA DA FUNDAÇÃO":1,"ROS-07-03|CONCRETAGEM DA FUNDAÇÃO":1,"ROS-07-03|DESFORMA":1,"ROS-07-03|CURA":1,"ROS-07-03|ACABAMENTO E TRATAMENTO DE FISSURAS":1,"ROS-07-03|MALHA DE ATERRAMENTO EXTERNA DA FUNDAÇÃO":1,"ROS-07-03|REATERRO DA BASE":1,"ROS-07-03|TERRAPLENAGEM (PLATAFORMA)":1,"ROS-07-03|SUB-BASE (PLATAFORMA)":1,"ROS-07-03|BASE (PLATAFORMA)":0.5,"ROS-07-04|SONDAGEM":1,"ROS-07-04|SUPRESSÃO VEGETAL":1,"ROS-07-04|ESCAVAÇÃO":1,"ROS-07-04|ENSAIO DE PLACA NO FUNDO DA VALA":1,"ROS-07-04|RECOMPOSIÇÃO / REGULARIZAÇÃO DE FUNDO DE CAVA":1,"ROS-07-04|SOLO-CIMENTO":1,"ROS-07-04|LIBERAÇÃO":1,"ROS-07-04|ELETRODUTOS INTERNOS DA FUNDAÇÃO":1,"ROS-07-04|TRAVESSIA DE AERO":1,"ROS-07-04|CONCRETO DE REGULARIZAÇÃO":1,"ROS-07-04|MONTAGEM DO ANCHOR-CAGES":1,"ROS-07-04|ARMAÇÃO":1,"ROS-07-04|FORMA":1,"ROS-07-04|MALHA DE ATERRAMENTO INTERNA DA FUNDAÇÃO":1,"ROS-07-04|CONCRETAGEM DA FUNDAÇÃO":1,"ROS-07-04|DESFORMA":1,"ROS-07-04|CURA":1,"ROS-07-04|ACABAMENTO E TRATAMENTO DE FISSURAS":1,"ROS-07-04|MALHA DE ATERRAMENTO EXTERNA DA FUNDAÇÃO":1,"ROS-07-04|REATERRO DA BASE":1,"ROS-07-04|TERRAPLENAGEM (PLATAFORMA)":1,"ROS-07-04|SUB-BASE (PLATAFORMA)":1,"ROS-07-04|BASE (PLATAFORMA)":1,"ROS-07-04|ÁREA DE PÁ":0.5,"ROS-07-04|ENSAIO DE PLACA (PLATAFORMA)":1,"ROS-07-05|SONDAGEM":1,"ROS-07-05|SUPRESSÃO VEGETAL":1,"ROS-07-05|ESCAVAÇÃO":1,"ROS-07-05|ENSAIO DE PLACA NO FUNDO DA VALA":1,"ROS-07-05|RECOMPOSIÇÃO / REGULARIZAÇÃO DE FUNDO DE CAVA":1,"ROS-07-05|SOLO-CIMENTO":1,"ROS-07-05|LIBERAÇÃO":1,"ROS-07-05|ELETRODUTOS INTERNOS DA FUNDAÇÃO":1,"ROS-07-05|TRAVESSIA DE AERO":1,"ROS-07-05|CONCRETO DE REGULARIZAÇÃO":1,"ROS-07-05|MONTAGEM DO ANCHOR-CAGES":1,"ROS-07-05|ARMAÇÃO":1,"ROS-07-05|FORMA":1,"ROS-07-05|MALHA DE ATERRAMENTO INTERNA DA FUNDAÇÃO":1,"ROS-07-05|CONCRETAGEM DA FUNDAÇÃO":1,"ROS-07-05|DESFORMA":1,"ROS-07-05|CURA":1,"ROS-07-05|ACABAMENTO E TRATAMENTO DE FISSURAS":1,"ROS-07-05|MALHA DE ATERRAMENTO EXTERNA DA FUNDAÇÃO":1,"ROS-07-05|REATERRO DA BASE":1,"ROS-07-05|TERRAPLENAGEM (PLATAFORMA)":1,"ROS-07-05|SUB-BASE (PLATAFORMA)":1,"ROS-07-05|BASE (PLATAFORMA)":1,"ROS-07-05|ÁREA DE PÁ":1,"ROS-07-05|DRENAGEM SUPERFICIAL":0.5,"ROS-07-05|ENSAIO DE PLACA (PLATAFORMA)":1,"ACESSO 01|MEIO FIO":{"qtd":134,"exe":134},"ACESSO 01|SARJETA":{"qtd":1294,"exe":1294},"ACESSO 01|VALETA":{"qtd":650,"exe":650},"ACESSO 01|DESCIDA D'ÁGUA":{"qtd":18,"exe":18},"ACESSO 02|MEIO FIO":{"qtd":104,"exe":85},"ACESSO 02|SARJETA":{"qtd":159,"exe":110},"ACESSO 02|VALETA":{"qtd":311,"exe":101},"ACESSO 02|DESCIDA D'ÁGUA":{"qtd":14,"exe":7},"ACESSO 03|MEIO FIO":{"qtd":356,"exe":356},"ACESSO 03|SARJETA":{"qtd":360,"exe":360},"ACESSO 03|VALETA":{"qtd":277,"exe":277},"ACESSO 03|DESCIDA D'ÁGUA":{"qtd":19,"exe":19},"ACESSO 04|MEIO FIO":{"qtd":691.27,"exe":691.27},"ACESSO 04|SARJETA":{"qtd":2518.85,"exe":2129.81},"ACESSO 04|VALETA":{"qtd":1401.99,"exe":1050.78},"ACESSO 04|DESCIDA D'ÁGUA":{"qtd":74.17,"exe":66.82},"ACESSO 05|MEIO FIO":{"qtd":418.81,"exe":391.98},"ACESSO 05|SARJETA":{"qtd":1640.48,"exe":527.7},"ACESSO 05|VALETA":{"qtd":1053.61,"exe":573.71},"ACESSO 05|DESCIDA D'ÁGUA":{"qtd":38.79,"exe":31.37},"ACESSO 06|MEIO FIO":{"qtd":37,"exe":37},"ACESSO 06|SARJETA":{"qtd":351.6,"exe":0},"ACESSO 06|VALETA":{"qtd":230,"exe":0},"ACESSO 06|DESCIDA D'ÁGUA":{"qtd":2,"exe":2},"ACESSO 08|MEIO FIO":{"qtd":361.42,"exe":0},"ACESSO 08|SARJETA":{"qtd":393.38,"exe":0},"ACESSO 08|VALETA":{"qtd":405.89,"exe":0},"ACESSO 08|DESCIDA D'ÁGUA":{"qtd":31,"exe":0},"ACESSO 09|MEIO FIO":{"qtd":339.09,"exe":0},"ACESSO 09|SARJETA":{"qtd":541.27,"exe":0},"ACESSO 09|VALETA":{"qtd":531.05,"exe":0},"ACESSO 09|DESCIDA D'ÁGUA":{"qtd":62.92,"exe":0},"ACESSO 10|MEIO FIO":{"qtd":408.24,"exe":0},"ACESSO 10|SARJETA":{"qtd":822.46,"exe":0},"ACESSO 10|VALETA":{"qtd":1100.12,"exe":0},"ACESSO 10|DESCIDA D'ÁGUA":{"qtd":36.12,"exe":0},"ACESSO 11|MEIO FIO":{"qtd":707.63,"exe":0},"ACESSO 11|SARJETA":{"qtd":2144.99,"exe":0},"ACESSO 11|VALETA":{"qtd":1446.24,"exe":0},"ACESSO 11|DESCIDA D'ÁGUA":{"qtd":106.13,"exe":0},"ACESSO 12|MEIO FIO":{"qtd":387.39,"exe":0},"ACESSO 12|SARJETA":{"qtd":777.22,"exe":0},"ACESSO 12|VALETA":{"qtd":427.75,"exe":0},"ACESSO 12|DESCIDA D'ÁGUA":{"qtd":62.14,"exe":0},"ACESSO 13|MEIO FIO":{"qtd":792.94,"exe":0},"ACESSO 13|SARJETA":{"qtd":1665.69,"exe":0},"ACESSO 13|VALETA":{"qtd":402.71,"exe":0},"ACESSO 13|DESCIDA D'ÁGUA":{"qtd":109.26,"exe":0},"ACESSO 14|MEIO FIO":{"qtd":125.32,"exe":0},"ACESSO 14|SARJETA":{"qtd":631.05,"exe":0},"ACESSO 14|VALETA":{"qtd":468.02,"exe":0},"ACESSO 14|DESCIDA D'ÁGUA":{"qtd":11.27,"exe":0},"ACESSO EXTERNO PRINCIPAL|MEIO FIO":{"qtd":97.24,"exe":0},"ACESSO EXTERNO PRINCIPAL|SARJETA":{"qtd":1144.31,"exe":0},"ACESSO EXTERNO PRINCIPAL|VALETA":{"qtd":2506.69,"exe":1171.74},"ACESSO EXTERNO PRINCIPAL|DESCIDA D'ÁGUA":{"qtd":108.46,"exe":0},"ACESSO EXTERNO 01|MEIO FIO":{"qtd":365,"exe":348},"ACESSO EXTERNO 01|SARJETA":{"qtd":1435,"exe":396},"ACESSO EXTERNO 01|VALETA":{"qtd":1963,"exe":1021},"ACESSO EXTERNO 01|DESCIDA D'ÁGUA":{"qtd":50,"exe":30},"ACESSO EXTERNO 02|MEIO FIO":{"qtd":124,"exe":0},"ACESSO EXTERNO 02|SARJETA":{"qtd":914,"exe":0},"ACESSO EXTERNO 02|VALETA":{"qtd":723,"exe":0},"ACESSO EXTERNO 02|DESCIDA D'ÁGUA":{"qtd":22,"exe":0},"ACESSO EXTERNO 03|MEIO FIO":{"qtd":198.64,"exe":0},"ACESSO EXTERNO 03|SARJETA":{"qtd":2496.77,"exe":0},"ACESSO EXTERNO 03|VALETA":{"qtd":1599.2,"exe":0},"ACESSO EXTERNO 03|DESCIDA D'ÁGUA":{"qtd":21.23,"exe":0},"ACESSO EXTERNO 04|MEIO FIO":{"qtd":183.75,"exe":0},"ACESSO EXTERNO 04|SARJETA":{"qtd":886.21,"exe":0},"ACESSO EXTERNO 04|VALETA":{"qtd":602.74,"exe":0},"ACESSO EXTERNO 04|DESCIDA D'ÁGUA":{"qtd":24.58,"exe":0},"ACESSO CANTEIRO 01|MEIO FIO":{"qtd":48.91,"exe":0},"ACESSO CANTEIRO 01|SARJETA":{"qtd":445.56,"exe":0},"ACESSO CANTEIRO 01|DESCIDA D'ÁGUA":{"qtd":10.41,"exe":0},"ACESSO SE|MEIO FIO":{"qtd":429.7,"exe":429.7},"ACESSO SE|VALETA":{"qtd":81.05,"exe":0},"ACESSO SE|DESCIDA D'ÁGUA":{"qtd":10.44,"exe":10.44},"ACESSO 02|INSTALAÇÃO DE BUEIRO":{"qtd":1,"exe":1},"ACESSO 03|INSTALAÇÃO DE BUEIRO":{"qtd":1,"exe":1},"ACESSO 04|INSTALAÇÃO DE BUEIRO":{"qtd":11,"exe":11},"ACESSO 05|INSTALAÇÃO DE BUEIRO":{"qtd":7,"exe":7},"ACESSO 08|INSTALAÇÃO DE BUEIRO":{"qtd":2,"exe":2},"ACESSO 09|INSTALAÇÃO DE BUEIRO":{"qtd":5,"exe":5},"ACESSO 10|INSTALAÇÃO DE BUEIRO":{"qtd":7,"exe":7},"ACESSO 11|INSTALAÇÃO DE BUEIRO":{"qtd":7,"exe":7},"ACESSO 12|INSTALAÇÃO DE BUEIRO":{"qtd":1,"exe":0},"ACESSO 13|INSTALAÇÃO DE BUEIRO":{"qtd":2,"exe":0},"ACESSO 14|INSTALAÇÃO DE BUEIRO":{"qtd":1,"exe":0},"ACESSO EXTERNO PRINCIPAL|INSTALAÇÃO DE BUEIRO":{"qtd":4,"exe":4},"ACESSO EXTERNO 01|INSTALAÇÃO DE BUEIRO":{"qtd":11,"exe":11},"ACESSO EXTERNO 02|INSTALAÇÃO DE BUEIRO":{"qtd":4,"exe":3},"ACESSO EXTERNO 03|INSTALAÇÃO DE BUEIRO":{"qtd":3,"exe":3},"ACESSO EXTERNO 04|INSTALAÇÃO DE BUEIRO":{"qtd":1,"exe":1},"ACESSO SE|INSTALAÇÃO DE BUEIRO":{"qtd":2,"exe":2},"ACESSO EXTERNO EXISTENTE|INSTALAÇÃO DE BUEIRO":{"qtd":2,"exe":0},"ACESSO 02|ALAS E DISSIPADORES":{"qtd":2,"exe":2},"ACESSO 03|ALAS E DISSIPADORES":{"qtd":2,"exe":2},"ACESSO 04|ALAS E DISSIPADORES":{"qtd":22,"exe":17},"ACESSO 05|ALAS E DISSIPADORES":{"qtd":14,"exe":8},"ACESSO 08|ALAS E DISSIPADORES":{"qtd":4,"exe":0},"ACESSO 09|ALAS E DISSIPADORES":{"qtd":10,"exe":1},"ACESSO 10|ALAS E DISSIPADORES":{"qtd":14,"exe":2},"ACESSO 11|ALAS E DISSIPADORES":{"qtd":14,"exe":3},"ACESSO 12|ALAS E DISSIPADORES":{"qtd":2,"exe":0},"ACESSO 13|ALAS E DISSIPADORES":{"qtd":4,"exe":0},"ACESSO 14|ALAS E DISSIPADORES":{"qtd":2,"exe":0},"ACESSO EXTERNO PRINCIPAL|ALAS E DISSIPADORES":{"qtd":8,"exe":6},"ACESSO EXTERNO 01|ALAS E DISSIPADORES":{"qtd":22,"exe":20},"ACESSO EXTERNO 02|ALAS E DISSIPADORES":{"qtd":8,"exe":0},"ACESSO EXTERNO 03|ALAS E DISSIPADORES":{"qtd":6,"exe":0},"ACESSO EXTERNO 04|ALAS E DISSIPADORES":{"qtd":2,"exe":0},"ACESSO SE|ALAS E DISSIPADORES":{"qtd":4,"exe":0},"ACESSO EXTERNO EXISTENTE|ALAS E DISSIPADORES":{"qtd":4,"exe":0}}},"cfg":{"inicio":"2026-11-14","dias":14,"feriados":["2026-11-20"]}};
+const KEY = 'prog-quinzenal-tiangua-v1';
+function persist(){ try{ localStorage.setItem(KEY, JSON.stringify({rows, cad, cfg, salvo:new Date().toISOString()})); status('ok','Salvo neste navegador'); }catch(e){ status('bad','Não foi possível salvar'); } }
+const fakeRef = { set: async()=>persist(), delete: async()=>persist() };
+db = { collection: ()=>({ doc: ()=>fakeRef }), doc: ()=>fakeRef };
+function loadSnap(d){ rows = structuredClone(d.rows); cad = structuredClone(d.cad); cfg = {...cfg, ...structuredClone(d.cfg)}; rows.sort((a,b)=>(a.ordem||0)-(b.ordem||0)); }
+let saved = null; try{ saved = JSON.parse(localStorage.getItem(KEY)||'null'); }catch(e){}
+loadSnap(saved || SNAP);
+status('ok', saved ? 'Salvo neste navegador' : 'Dados iniciais (W46/W47)');
+banner('Versão online independente: suas edições ficam salvas só neste navegador. Use “Exportar dados” para guardar ou enviar a outra pessoa, e “Importar dados” para carregar um arquivo exportado.');
+$('#banner').style.borderLeftColor = 'var(--accent)'; $('#banner').style.background = 'var(--surface)';
+const tb = $('#copiar').parentElement;
+tb.insertAdjacentHTML('afterbegin','<button id="exp">Exportar dados</button><label class="lb" style="cursor:pointer;border:1px solid var(--line);border-radius:6px;padding:7px 12px;color:var(--ink);font-size:14px;background:var(--surface)">Importar dados<input type="file" id="imp" accept=".json,application/json" hidden></label><button id="rst" title="Volta aos dados dos controles W46/W47">Restaurar originais</button>');
+$('#exp').addEventListener('click', ()=>{ const b = new Blob([JSON.stringify({rows,cad,cfg},null,1)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='programacao-tiangua-'+new Date().toISOString().slice(0,10)+'.json'; document.body.appendChild(a); a.click(); a.remove(); });
+$('#imp').addEventListener('change', async e=>{ const f=e.target.files[0]; if(!f) return; try{ const d=JSON.parse(await f.text()); if(!d.rows||!d.cad) throw 0; loadSnap(d); persist(); render(); toast('Dados importados'); }catch(err){ toast('Arquivo inválido'); } e.target.value=''; });
+$('#rst').addEventListener('click', e=>{ const b=e.currentTarget; if(!b.classList.contains('confirm')){ b.classList.add('confirm'); b.textContent='Confirmar restauração'; b.style.background='var(--bad)'; b.style.color='var(--surface)'; setTimeout(()=>{ b.classList.remove('confirm'); b.textContent='Restaurar originais'; b.style.background=''; b.style.color=''; },3000); return; }
+  try{ localStorage.removeItem(KEY); }catch(_){} loadSnap(SNAP); render(); status('ok','Dados iniciais (W46/W47)'); toast('Dados originais restaurados'); });
+render();
+</script>
+</body>
+</html>
